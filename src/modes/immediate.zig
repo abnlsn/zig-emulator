@@ -10,13 +10,14 @@ fn get_opcode(instr: u8) ImmediateOp {
 }
 
 pub fn handleImmediate(cpu: *Cpu, instr: u8) !void {
+    const immediate_value = try cpu.fetch();
     const opcode = get_opcode(instr);
+
     switch (opcode) {
         .LIT => {
             const wst = instruction.get_wst(instr);
-            const value = try cpu.fetch();
 
-            try cpu.push_stack(wst, value);
+            try cpu.push_stack(wst, immediate_value);
         },
     }
 }

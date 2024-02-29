@@ -16,8 +16,17 @@ pub fn main() !void {
 
     // try bw.flush(); // don't forget to flush!
 
-    var cpu = Cpu.init();
+    const file = try std.fs.cwd().openFile("bytes.rom", .{});
+    defer file.close();
+
+    var cpu = try Cpu.init(file.reader());
+
     try cpu.print();
+
+    for (0..4) |_| {
+        try cpu.step();
+        try cpu.print();
+    }
 }
 
 test "simple test" {

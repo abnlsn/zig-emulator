@@ -42,9 +42,11 @@ pub const Cpu = struct {
 
     const Self = @This();
 
-    pub fn init() Cpu {
+    pub fn init(reader: anytype) !Cpu {
+        var mem = Memory.init();
+        try mem.load(reader);
         return .{
-            .mem = Memory.init(),
+            .mem = mem,
             .s0 = stack.Stack.init(),
             .s1 = stack.Stack.init(),
             .pc = 0,
@@ -65,7 +67,7 @@ pub const Cpu = struct {
         return value;
     }
 
-    fn step(self: *Self) !void {
+    pub fn step(self: *Self) !void {
         const instr = try self.fetch();
 
         const modes = @import("modes/modes.zig");
@@ -110,19 +112,21 @@ test "memory load" {
 
     try mem.load(fbs.reader());
 
-    std.debug.print("{any}\n", .{mem.data});
+    try tst.expect(mem.data[0] == 0x01);
+
 }
 
 test "cpu" {
-    var cpu = Cpu.init();
+    // LIT 0xFF opcode
+    const instructions = [_]u8{0x00, 0xFF};
 
-    try cpu.mem.write(0, 0x00);
-    try cpu.mem.write(1, 0xFF);
+    const data: []const u8 = &instructions;
+    var fbs = std.io.fixedBufferStream(data);
 
-    try cpu.print();
+    var cpu = try Cpu.init(fbs.reader());
 
     try cpu.step();
 
-    try cpu.print();
+    try tst.expect(cpu.s0.data[0] == 0xFF);
 
 }
