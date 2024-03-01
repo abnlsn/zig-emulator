@@ -85,6 +85,7 @@ pub const Cpu = struct {
                 try modes.immediate.handleImmediate(self, instr);
             },
             .arithmetic => {
+                try modes.arithmetic.handle_arithmetic(self, instr);
             },
             .stack => {
                 try modes.stack.handleStack(self, instr);
