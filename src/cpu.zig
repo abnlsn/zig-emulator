@@ -23,12 +23,12 @@ const Memory = struct {
         }
     }
 
-    fn read(self: *const Self, addr: u16) !u8 {
+    pub fn read(self: *const Self, addr: u16) !u8 {
         if (addr >= 1024) return error.OutOfBounds;
         return self.data[addr];
     }
 
-    fn write(self: *Self, addr: u16, value: u8) !void {
+    pub fn write(self: *Self, addr: u16, value: u8) !void {
         if (addr >= 1024) return error.OutOfBounds;
         self.data[addr] = value;
     }
@@ -91,7 +91,7 @@ pub const Cpu = struct {
                 try modes.stack.handleStack(self, instr);
             },
             .memory => {
-
+                try modes.memory.handle_memory(self, instr);
             },
         }
     }
