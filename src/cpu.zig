@@ -61,6 +61,14 @@ pub const Cpu = struct {
         };
     }
 
+    pub fn get_stack(self: *Self, wst: u8) !*stack.Stack {
+        return switch(wst) {
+            0 => &self.s0,
+            1 => &self.s1,
+            else => unreachable,
+        };
+    }
+
     pub fn fetch(self: *Self) !u8 {
         const value = self.mem.read(self.pc);
         self.pc += 1;
@@ -77,10 +85,9 @@ pub const Cpu = struct {
                 try modes.immediate.handleImmediate(self, instr);
             },
             .arithmetic => {
-
             },
             .stack => {
-
+                try modes.stack.handleStack(self, instr);
             },
             .memory => {
 

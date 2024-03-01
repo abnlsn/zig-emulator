@@ -2,7 +2,8 @@ const std = @import("std");
 
 const StackError = error {
     Overflow,
-    Underflow
+    Underflow,
+    InvalidPosition,
 };
 
 pub const Stack = struct {
@@ -25,9 +26,42 @@ pub const Stack = struct {
         self.ptr += 1;
     }
 
+    pub fn get_at_position(self: *Self, pos: u8) !u8 {
+        if (pos > 3) return error.InvalidPosition;
+        return self.data[self.ptr - pos - 1];
+    }
+
+    pub fn remove(self: *Self, pos: u8) !void {
+        var idx = self.ptr - pos - 1;
+
+        while (idx < self.ptr - 1) {
+            self.data[idx] = self.data[idx + 1];
+            idx += 1;
+        }
+
+        self.ptr -= 1;
+    }
+
     pub fn print(self: *const Self, writer: anytype) !void {
         for (self.data) |value| {
             try writer.print("| {x:0>2} ", .{value});
         }
     }
 };
+
+const tst = @import("std").testing;
+
+test "remove" {
+    var stack = Stack.init();
+    
+    try stack.push(1);
+    try stack.push(2);
+    try stack.push(3);
+
+    try stack.remove(1);
+    try tst.expectEqual(stack.get_at_position(1), 1);
+    try tst.expectEqual(stack.get_at_position(0), 3);
+    try stack.remove(0);
+    try tst.expectEqual(stack.get_at_position(0), 1);
+    
+}
