@@ -44,10 +44,11 @@ pub const Stack = struct {
 
     pub fn print(self: *const Self, writer: anytype) !void {
         for (self.data, 0..) |value, i| {
-            var val = value;
-            if (i >= self.ptr) val = 0;
-            try writer.print("| {x:0>2} ", .{val});
+            if (i < self.ptr) {
+                try writer.print("| {x:0>2} ", .{value});
+            }
         }
+        try writer.print("|", .{});
     }
 };
 
