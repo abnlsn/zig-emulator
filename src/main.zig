@@ -1,5 +1,5 @@
 const std = @import("std");
-const Cpu = @import("cpu.zig").Cpu;
+const Cpu = @import("cpu").Cpu;
 
 pub fn main() !void {
 

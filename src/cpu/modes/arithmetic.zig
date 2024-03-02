@@ -1,7 +1,7 @@
 const Cpu = @import("../cpu.zig").Cpu;
 const instruction = @import("../instruction.zig");
 
-const ArithmeticOp = enum {
+pub const ArithmeticOp = enum {
     GTH,
     LTH,
     EQU,

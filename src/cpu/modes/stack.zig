@@ -1,7 +1,7 @@
 const Cpu = @import("../cpu.zig").Cpu;
 const instruction = @import("../instruction.zig");
 
-const StackOp = enum(u8) {
+pub const StackOp = enum(u8) {
     REM = 0b0,
     MOV = 0b1,
 };

@@ -1,7 +1,7 @@
 const Cpu = @import("../cpu.zig").Cpu;
 const instruction = @import("../instruction.zig");
 
-const ImmediateOp = enum(u8) {
+pub const ImmediateOp = enum(u8) {
     LIT = 0x0000,
 };
 

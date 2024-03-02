@@ -1,7 +1,7 @@
 const Cpu = @import("../cpu.zig").Cpu;
 const instruction = @import("../instruction.zig");
 
-const MemoryOp = enum(u8) {
+pub const MemoryOp = enum(u8) {
     LDP = 0,
     STP = 1,
     JMP = 2,
