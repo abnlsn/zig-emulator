@@ -31,6 +31,41 @@ const AllModes = blk: {
     break :blk @Type(std.builtin.Type{ .Enum  = enumInfo });
 };
 
+fn stringToMode(instr: []const u8) !modes.Mode {
+    const operation = std.meta.stringToEnum(AllModes, instr) orelse return error.InvalidInstruction;
+    const mode = (@intFromEnum(operation) >> 6) & 0b11;
+    const opcode = @intFromEnum(operation) & 0b00111111;
+
+    // const Mode = modes.Mode;
+    const ImmediateOp = modes.immediate.ImmediateOp;
+    const ArithmeticOp = modes.arithmetic.ArithmeticOp;
+    const MemoryOp = modes.memory.MemoryOp;
+    const StackOp = modes.stack.StackOp;
+
+    switch (mode) {
+        0 => {
+            const op: ImmediateOp = @enumFromInt(opcode);
+            return .{ .Immediate = op };
+        },
+        1 => {
+            const op: ArithmeticOp = @enumFromInt(opcode);
+            return .{ .Arithmetic = op };
+        },
+        2 => {
+            const op: MemoryOp = @enumFromInt(opcode);
+            return .{ .Memory = op};
+        },
+        3 => {
+            const op: StackOp = @enumFromInt(opcode);
+            return .{ .Stack = op };
+        },
+        else => {
+            return error.InvalidMode;
+        },
+    }
+    
+}
+
 test "instruction modes" {
     const instr = "ADD";
     const instruction = std.meta.stringToEnum(AllModes, instr);
@@ -40,4 +75,10 @@ test "instruction modes" {
 test "get_instructions" {
     _ = std.meta.fields(AllModes);
     std.debug.print("hello", .{});
+}
+
+test "stringToMode" {
+    const instr = "ADD";
+    const mode = stringToMode(instr);
+    std.debug.print("mode: {any}\n", .{mode});
 }
