@@ -66,19 +66,36 @@ fn stringToMode(instr: []const u8) !modes.Mode {
     
 }
 
-test "instruction modes" {
-    const instr = "ADD";
-    const instruction = std.meta.stringToEnum(AllModes, instr);
-    std.debug.print("instruction: {any}\n", .{instruction});
+fn constructOpcode(instr: []const u8) !u8 {
+    const operation = try stringToMode(instr);
+    const keep = 0b0;
+    const wst: u8 = 0b0;
+
+    switch (operation) {
+        .Immediate => {
+            const op = operation.Immediate;
+            return (keep << 7) | (wst << 6) | 0b00 << 4 | @intFromEnum(op);
+        },
+        .Arithmetic => {
+            const op = operation.Arithmetic;
+            return (keep << 7) | (wst << 6) | 0b01 << 4 | @intFromEnum(op);
+        },
+        .Stack => {
+            const op = operation.Stack;
+            const dst: u8 = 0b0;
+            const pos: u8 = 0b00;
+            return (keep << 7) | (wst << 6) | 0b11 << 4 | dst << 3 | pos << 1 | @intFromEnum(op);
+        },
+        .Memory => {
+            const op = operation.Memory;
+            const page: u8 = 0b00;
+            return (keep << 7) | (wst << 6) | 0b11 << 4 | page << 2 | @intFromEnum(op);
+        },
+    }
 }
 
-test "get_instructions" {
-    _ = std.meta.fields(AllModes);
-    std.debug.print("hello", .{});
-}
-
-test "stringToMode" {
+test "constructOpcode" {
     const instr = "ADD";
-    const mode = stringToMode(instr);
-    std.debug.print("mode: {any}\n", .{mode});
+    const opcode = try constructOpcode(instr);
+    try std.testing.expect(opcode == 0b00010100);
 }
