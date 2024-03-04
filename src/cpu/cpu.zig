@@ -1,6 +1,7 @@
 const std = @import("std");
 const stack = @import("stack.zig");
 const instruction = @import("instruction.zig");
+pub const modes = @import("modes/modes.zig");
 
 const MemoryError = error {
     OutOfBounds,
@@ -77,8 +78,6 @@ pub const Cpu = struct {
 
     pub fn step(self: *Self) !void {
         const instr = try self.fetch();
-
-        const modes = @import("modes/modes.zig");
 
         switch (instruction.get_mode(instr)) {
             .immediate => {

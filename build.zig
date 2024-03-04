@@ -16,10 +16,18 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     const cpu = b.createModule(.{
-        .root_source_file = .{ .path = "cpu/cpu.zig" },
+        .root_source_file = .{ .path = "src/cpu/cpu.zig" },
         .target = target,
         .optimize = optimize,
     });
+
+    const assembler = b.createModule(.{
+        .root_source_file = .{ .path = "src/assembler/assembler.zig" },
+        .target = b.host,
+    });
+
+    assembler.addImport("cpu", cpu);
+
     const exe = b.addExecutable(.{
         .name = "zig-emulator",
         // In this case the main source file is merely a path, however, in more
@@ -67,11 +75,25 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    unit_tests.root_module.addImport("cpu", cpu);
+    unit_tests.root_module.addImport("assembler", assembler);
+
     const run_unit_tests = b.addRunArtifact(unit_tests);
+
+    const assembler_tests = b.addTest(.{
+        .root_source_file = .{ .path = "src/assembler/assembler.zig" },
+        .target = target,
+        .optimize = optimize,
+    });
+
+    assembler_tests.root_module.addImport("cpu", cpu);
+
+    const run_assembler_tests = b.addRunArtifact(assembler_tests);
 
     // Similar to creating the run step earlier, this exposes a `test` step to
     // the `zig build --help` menu, providing a way for the user to request
     // running the unit tests.
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_unit_tests.step);
+    test_step.dependOn(&run_assembler_tests.step);
 }
