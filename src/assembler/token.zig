@@ -1,7 +1,7 @@
 const directive = @import("./directive.zig");
 const instruction = @import("./instruction.zig");
 
-const Argument = enum {
+pub const Argument = enum {
     pos,
     wst,
     dst,
@@ -9,7 +9,7 @@ const Argument = enum {
     k
 };
 
-const TokenType = enum {
+pub const TokenType = enum {
     // single-char tokens
     COLON, AT, COMMA,
 
@@ -20,7 +20,7 @@ const TokenType = enum {
     LABEL, NUMBER
 };
 
-const Token = union(TokenType) {
+pub const Token = union(TokenType) {
     COLON: struct {},
     AT: struct {},
     COMMA: struct {},
