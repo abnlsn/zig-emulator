@@ -1,47 +1,76 @@
 const std = @import("std");
+const Token = @import("./token.zig").Token;
+const AnyInstruction = @import("./instruction.zig").AnyInstruction;
 
 pub const Error = error {
     EndOfStream,
 } | std.mem.Allocator.Error;
 
-pub fn Parser(comptime Value: type, comptime Reader: type) type {
+fn Parser(comptime Reader: type) type {
     return struct {
-        const Self = @This();
-        _parse: fn(self: *Self, allocator: *std.mem.Allocator, src: *Reader) callconv(.Inline) Error!?Value,
+        reader: Reader,
+        allocator: std.mem.Allocator,
+        tokens: std.ArrayList(Token),
 
-        pub fn parse(self: *Self, allocator: *std.mem.Allocator, src: *Reader) callconv(.Inline) Error!?Value {
-            return self._parse(self, allocator, src);
-        }
-    };
-}
-
-pub fn Literal(comptime Reader: type) type {
-    return struct {
-        parser: Parser([]u8, Reader) = .{
-            ._parse = parse
-        },
-        want: []const u8,
-        
         const Self = @This();
 
-        pub fn init(want: []const u8) Self {
-            return Self{
-                .want = want,
+        fn init(reader: Reader, allocator: std.mem.Allocator) Parser {
+            return Parser {
+                .reader = reader,
+                .allocator = allocator,
+                .tokens = std.ArrayList(Token).init(allocator),
             };
         }
 
-        fn parse(parser: *Parser([]u8, Reader), allocator: *std.mem.Allocator, src: *Reader) callconv(.Inline) Error!?[]u8 {
-            const self = @fieldParentPtr(Self, "parser", parser);
-            const buf = try allocator.alloc(u8, self.want.len);
-            errdefer allocator.free(buf);
+        fn scanToken(self: *Self) !Token {
+            const c = try self.reader.readByte();
+            switch (c) {
+                // single character
+                ':' => return Token {.COLON = .{} },
+                '@' => return Token {.AT = .{} },
+                ',' => return Token {.COMMA = .{} },
+                'a'...'z' => {
+                    try self.goBack(1);
+                    const instr_result = try self.parseInstruction();
+                    if (instr_result != null) {
+                        return instr_result;
+                    }
+                    const label_result = try self.parseLabel();
+                    return label_result;
+                },
+                '0'...'9' => {
 
-            const read = try src.reader().readAll(buf);
-            if (read < self.want.len or !std.mem.eql(u8, self.want, buf)) {
-                try src.seekableStream().seekBy(-@as(i64, @intCast(read)));
-                allocator.free(buf);
-                return null;
+                }
             }
-            return null;
         }
+
+        fn parseLabel(self: *Self) Error!?Token {
+            var buf: [16]u8 = undefined;
+            const fbs = std.io.fixedBufferStream(&buf);
+            try self.reader.streamUntilDelimiter(fbs.writer(), ' ', 16);
+            return Token{.LABEL = &buf };
+        }
+
+        fn parseInstruction(self: *Self) Error!?Token {
+            var buf: [16]u8 = undefined;
+            const fbs = std.io.fixedBufferStream(&buf);
+            try self.reader.streamUntilDelimiter(fbs.writer(), ' ', 16);
+            return Token{.INSTRUCTION = AnyInstruction.ADD };
+        }
+
+        fn goBack(self: *Self, chars: usize) !void {
+            try self.reader.seekableStream().seekBy(-@intCast(chars));
+        }
+
+        fn addToken(self: *Parser, token: Token) !void {
+            try self.tokens.append(token);
+        }
+
     };
+}
+
+const tst = std.testing;
+
+test "singleChars" {
+
 }
