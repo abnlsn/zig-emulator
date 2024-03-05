@@ -4,7 +4,7 @@ const modes = @import("cpu").modes;
 
 const instructionModes = .{modes.immediate.ImmediateOp, modes.arithmetic.ArithmeticOp, modes.memory.MemoryOp, modes.stack.StackOp};
 
-const AllModes = blk: {
+pub const AnyInstruction = blk: {
     var size = 0;
     for (instructionModes) |mode| {
         size += meta.fields(mode).len;
@@ -32,7 +32,7 @@ const AllModes = blk: {
 };
 
 fn stringToMode(instr: []const u8) !modes.Mode {
-    const operation = std.meta.stringToEnum(AllModes, instr) orelse return error.InvalidInstruction;
+    const operation = std.meta.stringToEnum(AnyInstruction, instr) orelse return error.InvalidInstruction;
     const mode = (@intFromEnum(operation) >> 6) & 0b11;
     const opcode = @intFromEnum(operation) & 0b00111111;
 
