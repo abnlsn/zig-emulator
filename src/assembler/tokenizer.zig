@@ -25,7 +25,6 @@ fn Parser(comptime Reader: type) type {
 
         fn scanToken(self: *Self) !Token {
             const c = try self.reader.reader().readByte();
-            std.debug.print("{c}", .{c});
             switch (c) {
                 // single character
                 ':' => return Token {.COLON = .{} },
@@ -78,5 +77,7 @@ test "singleChars" {
     var data = [_]u8{':', ',', '@'};
     const fbs = std.io.fixedBufferStream(&data);
     var parser = Parser(@TypeOf(fbs)).init(fbs, tst.allocator);
-    std.debug.print("{any}", .{parser.scanToken()});
+    std.debug.print("{any}\n", .{parser.scanToken()});
+    std.debug.print("{any}\n", .{parser.scanToken()});
+    std.debug.print("{any}\n", .{parser.scanToken()});
 }
