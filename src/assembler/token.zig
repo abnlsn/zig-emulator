@@ -21,9 +21,12 @@ const TokenType = enum {
 };
 
 const Token = union(TokenType) {
-    DIRECTIVE: directive.Directive,
+    COLON: struct {},
+    AT: struct {},
+    COMMA: struct {},
     INSTRUCTION: instruction.AnyInstruction,
-    LITERAL: []const u8,
-    NUMBER: u64,
+    DIRECTIVE: directive.Directive,
     ARGUMENT: Argument,
+    LABEL: []const u8,
+    NUMBER: u64,
 };
