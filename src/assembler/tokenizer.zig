@@ -92,10 +92,12 @@ test "singleChars" {
 }
 
 test "instruction" {
-    var data = [_]u8{'A', 'D', 'D', ' '};
+    var data = [_]u8{'A', 'D', 'D', ' ', 'S', 'U', 'B', ' '};
     const fbs = std.io.fixedBufferStream(&data);
     var parser = Parser(@TypeOf(fbs)).init(fbs, tst.allocator);
 
     const res = try parser.scanToken();
     try tst.expectEqual(res, Token{.INSTRUCTION = .{.Arithmetic = .ADD}});
+    const res1 = try parser.scanToken();
+    try tst.expectEqual(res1, Token{.INSTRUCTION = .{.Arithmetic = .SUB}});
 }
