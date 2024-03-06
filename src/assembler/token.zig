@@ -24,7 +24,7 @@ pub const Token = union(TokenType) {
     COLON: struct {},
     AT: struct {},
     COMMA: struct {},
-    INSTRUCTION: instruction.AnyInstruction,
+    INSTRUCTION: instruction.Mode,
     DIRECTIVE: directive.Directive,
     ARGUMENT: Argument,
     LABEL: []const u8,

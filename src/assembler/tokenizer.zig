@@ -1,6 +1,7 @@
 const std = @import("std");
 const Token = @import("./token.zig").Token;
-const AnyInstruction = @import("./instruction.zig").AnyInstruction;
+const Mode = @import("./instruction.zig").Mode;
+const instruction = @import("./instruction.zig");
 
 pub const Error = error {
     EndOfStream,
@@ -30,7 +31,7 @@ fn Parser(comptime Reader: type) type {
                 ':' => return Token {.COLON = .{} },
                 '@' => return Token {.AT = .{} },
                 ',' => return Token {.COMMA = .{} },
-                'a'...'z' => {
+                'a'...'z', 'A'...'Z' => {
                     try self.goBack(1);
                     const instr_result = try self.parseInstruction();
                     if (instr_result) |instr| {
@@ -57,7 +58,15 @@ fn Parser(comptime Reader: type) type {
             var buf: [16]u8 = undefined;
             var fbs = std.io.fixedBufferStream(&buf);
             try self.reader.reader().streamUntilDelimiter(fbs.writer(), ' ', 16);
-            return Token{.INSTRUCTION = AnyInstruction.ADD };
+
+            const instr = instruction.instructionMap.get(buf[0..fbs.pos]);
+
+            if (instr) |some_instr| {
+                return Token{.INSTRUCTION = some_instr};
+            } else {
+                try self.goBack(fbs.pos);
+                return null;
+            }
         }
 
         fn goBack(self: *Self, chars: usize) !void {
@@ -80,4 +89,13 @@ test "singleChars" {
     std.debug.print("{any}\n", .{parser.scanToken()});
     std.debug.print("{any}\n", .{parser.scanToken()});
     std.debug.print("{any}\n", .{parser.scanToken()});
+}
+
+test "label" {
+    var data = [_]u8{'A', 'D', 'D', ' '};
+    const fbs = std.io.fixedBufferStream(&data);
+    var parser = Parser(@TypeOf(fbs)).init(fbs, tst.allocator);
+
+    const res = try parser.scanToken();
+    try tst.expectEqual(res, Token{.INSTRUCTION = .{.Arithmetic = .ADD}});
 }
