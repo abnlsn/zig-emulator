@@ -38,6 +38,31 @@ const AST = struct {
         };
     }
 
+    fn generate(self: *Self, tokens: []const token.Token) !void {
+        var lc: u16 = 0;
+        for (tokens) |t| {
+            switch (t) {
+                .INSTRUCTION => |i| {
+                    // parse instruction
+                    self.locations[lc] = .{
+                        .Instruction = .{
+                            .instruction = i,
+                            .arguments = &.{},
+                        }
+                    };
+                    lc += 1;
+                },
+                .LABEL => |l| {
+                    // add to symbol table
+                    try self.labels.put(l, lc);
+                },
+                else => {
+                    // ignore
+                }
+            }
+        }
+    }
+
     fn deinit(self: *Self) void {
         self.labels.deinit();
     }
@@ -47,4 +72,16 @@ const tst = std.testing;
 test "init" {
     var ast = try AST.init(tst.allocator);
     defer ast.deinit();
+}
+
+test "generate" {
+    var ast = try AST.init(tst.allocator);
+    defer ast.deinit();
+
+    const tokens = [_]token.Token{token.Token{.LABEL = "hello"}, .{.INSTRUCTION = .{.Arithmetic = .ADD}}};
+
+    try ast.generate(&tokens);
+
+    try tst.expectEqual(1, ast.labels.count());
+    try tst.expectEqual(Instruction{.instruction=.{.Arithmetic=.ADD}, .arguments=&.{}}, ast.locations[0].Instruction);
 }
