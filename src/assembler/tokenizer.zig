@@ -33,11 +33,16 @@ fn Parser(comptime Reader: type) type {
                 ',' => return Token {.COMMA = .{} },
                 'a'...'z', 'A'...'Z' => {
                     try self.goBack(1);
-                    const instr_result = try self.parseInstruction();
+
+                    var buf: [16]u8 = undefined;
+                    var fbs = std.io.fixedBufferStream(&buf);
+                    try self.reader.reader().streamUntilDelimiter(fbs.writer(), ' ', 16);
+
+                    const instr_result = try parseInstruction(buf[0..fbs.pos]);
                     if (instr_result) |instr| {
                         return instr;
                     }
-                    const label_result = try self.parseLabel();
+                    const label_result = try parseLabel(buf[0..fbs.pos]);
                     return label_result.?;
                 },
                 '0'...'9' => {
@@ -47,24 +52,16 @@ fn Parser(comptime Reader: type) type {
             }
         }
 
-        fn parseLabel(self: *Self) Error!?Token {
-            var buf: [16]u8 = undefined;
-            var fbs = std.io.fixedBufferStream(&buf);
-            try self.reader.reader().streamUntilDelimiter(fbs.writer(), ' ', 16);
-            return Token{.LABEL = &buf };
+        fn parseLabel(str: []const u8) Error!?Token {
+            return Token{.LABEL = str };
         }
 
-        fn parseInstruction(self: *Self) Error!?Token {
-            var buf: [16]u8 = undefined;
-            var fbs = std.io.fixedBufferStream(&buf);
-            try self.reader.reader().streamUntilDelimiter(fbs.writer(), ' ', 16);
-
-            const instr = instruction.instructionMap.get(buf[0..fbs.pos]);
+        fn parseInstruction(str: []const u8) Error!?Token {
+            const instr = instruction.instructionMap.get(str);
 
             if (instr) |some_instr| {
                 return Token{.INSTRUCTION = some_instr};
             } else {
-                try self.goBack(fbs.pos);
                 return null;
             }
         }
