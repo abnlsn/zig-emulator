@@ -91,7 +91,7 @@ test "singleChars" {
     std.debug.print("{any}\n", .{parser.scanToken()});
 }
 
-test "label" {
+test "instruction" {
     var data = [_]u8{'A', 'D', 'D', ' '};
     const fbs = std.io.fixedBufferStream(&data);
     var parser = Parser(@TypeOf(fbs)).init(fbs, tst.allocator);
