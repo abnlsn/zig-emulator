@@ -1,5 +1,6 @@
 const std = @import("std");
-const Token = @import("./token.zig").Token;
+const token = @import("./token.zig");
+const Token = token.Token;
 const Mode = @import("./instruction.zig").Mode;
 const instruction = @import("./instruction.zig");
 
@@ -38,11 +39,17 @@ fn Parser(comptime Reader: type) type {
                     var fbs = std.io.fixedBufferStream(&buf);
                     try self.reader.reader().streamUntilDelimiter(fbs.writer(), ' ', 16);
 
-                    const instr_result = try parseInstruction(buf[0..fbs.pos]);
+                    const str = buf[0..fbs.pos];
+
+                    const instr_result = try parseInstruction(str);
                     if (instr_result) |instr| {
                         return instr;
                     }
-                    const label_result = try parseLabel(buf[0..fbs.pos]);
+                    if (try parseArgument(str)) |arg| {
+                        return arg;
+                    }
+                    // otherwise interpret as a label
+                    const label_result = try parseLabel(str);
                     return label_result.?;
                 },
                 '0'...'9' => {
@@ -66,12 +73,21 @@ fn Parser(comptime Reader: type) type {
             }
         }
 
+        fn parseArgument(str: []const u8) Error!?Token {
+            const argument = std.meta.stringToEnum(token.Argument, str);
+            if (argument) |arg| {
+                return Token{.ARGUMENT = arg};
+            } else {
+                return null;
+            }
+        }
+
         fn goBack(self: *Self, chars: usize) !void {
             try self.reader.seekableStream().seekBy(-@as(i64, @intCast(chars)));
         }
 
-        fn addToken(self: *Parser, token: Token) !void {
-            try self.tokens.append(token);
+        fn addToken(self: *Parser, t: Token) !void {
+            try self.tokens.append(t);
         }
 
     };
@@ -83,9 +99,7 @@ test "singleChars" {
     var data = [_]u8{':', ',', '@'};
     const fbs = std.io.fixedBufferStream(&data);
     var parser = Parser(@TypeOf(fbs)).init(fbs, tst.allocator);
-    std.debug.print("{any}\n", .{parser.scanToken()});
-    std.debug.print("{any}\n", .{parser.scanToken()});
-    std.debug.print("{any}\n", .{parser.scanToken()});
+    _ = try parser.scanToken(); // figure out how to test
 }
 
 test "instruction" {
@@ -97,4 +111,13 @@ test "instruction" {
     try tst.expectEqual(res, Token{.INSTRUCTION = .{.Arithmetic = .ADD}});
     const res1 = try parser.scanToken();
     try tst.expectEqual(res1, Token{.INSTRUCTION = .{.Arithmetic = .SUB}});
+}
+
+test "argument" {
+    var data = [_]u8{'p', 'o', 's', ' ', 'S', 'U', 'B', ' '};
+    const fbs = std.io.fixedBufferStream(&data);
+    var parser = Parser(@TypeOf(fbs)).init(fbs, tst.allocator);
+
+    const res = try parser.scanToken();
+    try tst.expectEqual(Token{.ARGUMENT = .pos}, res);
 }

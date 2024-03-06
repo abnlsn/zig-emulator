@@ -1,5 +1,6 @@
 const directive = @import("./directive.zig");
 const instruction = @import("./instruction.zig");
+const std = @import("std");
 
 pub const Argument = enum {
     pos,
