@@ -32,8 +32,8 @@ pub const AST = struct {
 
     fn putLabels(self: *Self) !void {
         var i: usize = 0;
-        while(i < 1024) {
-            const loc = self.locations[i];
+        while(i < 1024) : (i += 1) {
+            const loc = self.locations[i] orelse continue;
             switch(loc) {
                 .Literal => |lit| {
                     switch (lit) {
@@ -48,7 +48,6 @@ pub const AST = struct {
                 },
                 else => {},
             }
-            i += 1;
         }
     }
 
@@ -131,6 +130,7 @@ pub const AST = struct {
 
     pub fn writeCode(self: *Self, tokens: []const token.Token, writer: anytype) !void {
         try self.generate(tokens);
+        try self.putLabels();
         var i: usize = 0;
         while (i < 1024) : (i += 1) {
             const loc = self.locations[i];
