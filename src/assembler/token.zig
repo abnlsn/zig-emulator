@@ -22,9 +22,9 @@ pub const TokenType = enum {
 };
 
 pub const Token = union(TokenType) {
-    COLON: struct {},
-    AT: struct {},
-    COMMA: struct {},
+    COLON,
+    AT,
+    COMMA,
     INSTRUCTION: instruction.Mode,
     DIRECTIVE: directive.Directive,
     ARGUMENT: Argument,
