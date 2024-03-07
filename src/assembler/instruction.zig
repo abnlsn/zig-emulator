@@ -42,10 +42,42 @@ pub const Instruction = struct {
     },
 
     const Self = @This();
+    fn toOpcode(self: *const Self) !u8 {
+        var opcode: u8 = 0;
+        opcode |= self.arguments.k << 7;
+        opcode |= self.arguments.wst << 6;
 
+        switch (self.instruction) {
+            .Immediate => |i| {
+                opcode |= 0b00 << 4;
+                opcode |= @intFromEnum(i);
+            },
+            .Arithmetic => |i| {
+                opcode |= 0b01 << 4;
+                opcode |= @intFromEnum(i);
+            },
+            .Stack => |i| {
+                opcode |= 0b10 << 4;
+                opcode |= self.arguments.dst << 3; 
+                opcode |= self.arguments.pos << 1;
+                opcode |= @intFromEnum(i);
+            },
+            .Memory => |i| {
+                opcode |= 0b11 << 4;
+                opcode |= self.arguments.pg << 2;
+                opcode |= @intFromEnum(i);
+            },
+        }
+        return opcode;
+    }
 };
 
 test "instruction map ADD" {
     try std.testing.expectEqual(instructionMap.get("add"), Mode{.Arithmetic = .ADD});
     try std.testing.expectEqual(instructionMap.get("ADD"), Mode{.Arithmetic = .ADD});
+}
+
+test "opcode generation" {
+    const instr = Instruction{.instruction = .{.Arithmetic = .ADD}, .arguments = .{.k = 1}};
+    try std.testing.expectEqual(0b10010100, instr.toOpcode());
 }
