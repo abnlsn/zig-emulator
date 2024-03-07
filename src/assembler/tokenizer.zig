@@ -39,6 +39,17 @@ pub fn Parser(comptime Reader: type) type {
             return c;
         }
 
+        fn read(self: *Self) !u8 {
+            return try self.peekStream.reader().readByte();
+        }
+
+        fn streamUntilNonAlphaNum(self: *Self, writer: anytype) !void {
+            while (std.ascii.isAlphanumeric(try self.peek())) {
+                const c = try self.read();
+                try writer.writeByte(c);
+            }
+        }
+
         fn scanToken(self: *Self) !Token {
             const c = try self.peek();
             switch (c) {
@@ -49,11 +60,12 @@ pub fn Parser(comptime Reader: type) type {
                 'a'...'z', 'A'...'Z' => {
                     var buf: [16]u8 = undefined;
                     var fbs = std.io.fixedBufferStream(&buf);
-                    try self.peekStream.reader().streamUntilDelimiter(fbs.writer(), ' ', 16);
+                    try self.streamUntilNonAlphaNum(fbs.writer());
 
                     const str = buf[0..fbs.pos];
 
                     const instr_result = try parseInstruction(str);
+
                     if (instr_result) |instr| {
                         return instr;
                     }
@@ -67,7 +79,10 @@ pub fn Parser(comptime Reader: type) type {
                 '0'...'9' => {
                     return Token{.NUMBER = 0};
                 },
-                else => return self.scanToken(), // scan next char
+                else => {
+                    _ = try self.read();
+                    return self.scanToken();
+                },
             }
         }
 
@@ -113,6 +128,18 @@ test "singleChars" {
     const reader = fbs.reader();
     var parser = Parser(@TypeOf(reader)).init(reader, tst.allocator);
     _ = try parser.scanToken(); // figure out how to test
+}
+
+test "streamUntilNonAlphaNum" {
+    const data = "hello ";
+    var fbs = std.io.fixedBufferStream(data);
+    const reader = fbs.reader();
+    var parser = Parser(@TypeOf(reader)).init(reader, tst.allocator);
+
+    var buf: [16]u8 = undefined;
+    var fbs2 = std.io.fixedBufferStream(&buf);
+    try parser.streamUntilNonAlphaNum(fbs2.writer());
+    try tst.expectEqualStrings("hello", buf[0..fbs2.pos]);
 }
 
 test "instruction" {
