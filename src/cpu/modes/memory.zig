@@ -48,10 +48,10 @@ pub fn handle_memory(cpu: *Cpu, instr: u8) !void {
         },
         MemoryOp.JCP => {
             const value = try stack.get_at_position(0);
+            if (!keep) try stack.remove(0);
             if (value != 0) {
                 cpu.pc = absolute_addr;
             }
-            unreachable;
         },
     }
 }
