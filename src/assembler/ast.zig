@@ -43,6 +43,28 @@ const AST = struct {
         };
     }
 
+    fn putLabels(self: *Self) !void {
+        var i: usize = 0;
+        while(i < 1024) {
+            const loc = self.locations[i];
+            switch(loc) {
+                .Literal => |lit| {
+                    switch (lit) {
+                        .Label => |l| {
+                            const value = if (self.labels.get(l)) |v| v else unreachable;
+                            const page = self.lc / 256;
+                            const addr: u8 = @truncate(value - page * 256);
+                            self.locations[i] = LocationItem{.Literal = .{.Value = addr}};
+                        },
+                        else => {},
+                    }
+                },
+                else => {},
+            }
+            i += 1;
+        }
+    }
+
     fn generate(self: *Self, tokens: []const token.Token) !void {
         while (self.tokenIndex < tokens.len) {
             const t = tokens[self.tokenIndex];
@@ -171,4 +193,24 @@ test "immediate instruction" {
     try ast.generate(&tokens);
     try tst.expectEqual(Instruction{.instruction=.{.Immediate=.LIT}, .arguments=.{}}, ast.locations[0].Instruction);
     try tst.expectEqual(Literal{.Value = 3}, ast.locations[1].Literal);
+}
+
+test "immediate label" {
+    var ast = try AST.init(tst.allocator);
+    defer ast.deinit();
+
+    const tokens = [_]token.Token{
+        .{.INSTRUCTION = .{.Immediate = .LIT}},
+        .{.LABEL = "label"},
+        .{.INSTRUCTION = .{.Stack = .MOV}},
+        .{.ARGUMENT = .k},
+        .{.NUMBER = 1},
+        .{.LABEL = "label"},
+        .{.NUMBER = 17},
+    };
+
+    try ast.generate(&tokens);
+    try tst.expectEqualStrings("label", ast.locations[1].Literal.Label);
+    try ast.putLabels();
+    try tst.expectEqual(3, ast.locations[1].Literal.Value);
 }
