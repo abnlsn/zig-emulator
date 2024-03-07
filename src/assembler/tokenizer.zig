@@ -80,8 +80,8 @@ pub fn Parser(comptime Reader: type) type {
                     return label_result.?;
                 },
                 '0'...'9' => {
-                    _ = try self.read();
-                    return Token{.NUMBER = 0};
+                    // todo handle hex, handle decimal
+                    return try self.parseNumber();
                 },
                 else => {
                     _ = try self.read();
@@ -111,6 +111,24 @@ pub fn Parser(comptime Reader: type) type {
             } else {
                 return null;
             }
+        }
+
+        fn parseNumber(self: *Self) !Token {
+            var buf: [16]u8 = undefined;
+            var fbs = std.io.fixedBufferStream(&buf);
+            var c = try self.read();
+            var base: u8 = 10;
+            if (c == '0') {
+                if (try self.peek() == 'x') {
+                    base = 16;
+                    _ = try self.read();
+                    c = try self.read();
+                }
+            }
+            try fbs.writer().writeByte(c);
+            try self.streamUntilNonAlphaNum(fbs.writer());
+            const int = try std.fmt.parseUnsigned(u8, buf[0..fbs.pos], base);
+            return Token{.NUMBER = int};
         }
 
         fn goBack(self: *Self, chars: usize) !void {
@@ -154,6 +172,7 @@ test "instruction" {
 
     const res = try parser.scanToken();
     try tst.expectEqual(res, Token{.INSTRUCTION = .{.Arithmetic = .ADD}});
+    _ = try parser.scanToken(); // parse whitespace
     const res1 = try parser.scanToken();
     try tst.expectEqual(res1, Token{.INSTRUCTION = .{.Arithmetic = .SUB}});
 }
@@ -166,4 +185,14 @@ test "argument" {
 
     const res = try parser.scanToken();
     try tst.expectEqual(Token{.ARGUMENT = .pos}, res);
+}
+
+test "parseNumber" {
+    var data = [_]u8{'1', '2', '3', ' '};
+    var fbs = std.io.fixedBufferStream(&data);
+    const reader = fbs.reader();
+    var parser = Parser(@TypeOf(reader)).init(reader, tst.allocator);
+
+    const res = try parser.parseNumber();
+    try tst.expectEqual(Token{.NUMBER = 123}, res);
 }
