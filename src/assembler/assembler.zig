@@ -17,9 +17,8 @@ pub fn main() !void {
 
     var parser = tokenizer.Parser(@TypeOf(file.reader())).init(file.reader(), gpa);
     // defer parser.deinit(); // TODO
-    std.debug.print("Parsing", .{});
+
     const tokens = try parser.parse();
-    std.debug.print("done parsing: {any}", .{tokens});
 
     const outfile = try std.fs.cwd().createFile("a.rom", .{ .truncate = true, });
     defer outfile.close();
@@ -29,9 +28,6 @@ pub fn main() !void {
 
     defer a.deinit();
 
-    for (args, 0..) |arg, i| {
-        std.debug.print("{}: {s}\n", .{ i, arg });
-    }
 }
 
 test {

@@ -82,7 +82,6 @@ pub const AST = struct {
             }
             self.tokenIndex += 1;
         }
-        std.debug.print("locations: {any}", .{self.locations});
     }
 
     fn generateInstruction(self: *Self, tokens: []const token.Token) !Instruction {
