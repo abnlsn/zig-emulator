@@ -44,7 +44,7 @@ pub fn handle_memory(cpu: *Cpu, instr: u8) !void {
             try cpu.mem.write(absolute_addr, value);
         },
         MemoryOp.JMP => {
-            unreachable;
+            cpu.pc = absolute_addr;
         },
         MemoryOp.JCP => {
             unreachable;
