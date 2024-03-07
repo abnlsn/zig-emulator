@@ -61,8 +61,10 @@ pub fn Parser(comptime Reader: type) type {
                 '@' => return Token.AT,
                 ',' => return Token.COMMA,
                 'a'...'z', 'A'...'Z' => {
-                    var buf: [16]u8 = undefined;
-                    var fbs = std.io.fixedBufferStream(&buf);
+                    var buf: []u8 = try self.allocator.alloc(u8, 16);
+                    errdefer self.allocator.free(buf);
+
+                    var fbs = std.io.fixedBufferStream(buf);
                     try self.streamUntilNonAlphaNum(fbs.writer());
 
                     const str = buf[0..fbs.pos];
@@ -70,14 +72,16 @@ pub fn Parser(comptime Reader: type) type {
                     const instr_result = try parseInstruction(str);
 
                     if (instr_result) |instr| {
+                        self.allocator.free(buf);
                         return instr;
                     }
                     if (try parseArgument(str)) |arg| {
+                        self.allocator.free(buf);
                         return arg;
                     }
                     // otherwise interpret as a label
                     const label_result = try parseLabel(str);
-                    return label_result.?;
+                    return label_result;
                 },
                 '0'...'9' => {
                     // todo handle hex, handle decimal

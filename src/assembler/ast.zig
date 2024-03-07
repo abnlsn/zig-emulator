@@ -8,6 +8,11 @@ const Literal = union(enum) {
     Label: []const u8
 };
 
+fn freeLabel(allocator: std.mem.Allocator, label: []const u8) void {
+    const ptr = label.ptr;
+    allocator.free(ptr[0..16]);
+}
+
 const LocationItem = union(enum) {
     Instruction: Instruction,
     Literal: Literal,
@@ -38,6 +43,8 @@ pub const AST = struct {
                 .Literal => |lit| {
                     switch (lit) {
                         .Label => |l| {
+                            defer freeLabel(self.allocator, l); // we won't be needing label anymore, so free it
+
                             const value = self.labels.get(l) orelse unreachable;
                             const page = self.lc / 256;
                             const addr: u8 = @truncate(value - page * 256);
@@ -155,6 +162,10 @@ pub const AST = struct {
     }
 
     pub fn deinit(self: *Self) void {
+        var iter = self.labels.keyIterator();
+        while (iter.next()) |label| {
+            freeLabel(self.allocator, label.*);
+        }
         self.labels.deinit();
     }
 };
