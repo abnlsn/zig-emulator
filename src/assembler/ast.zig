@@ -12,7 +12,24 @@ const ArgumentUnion = union(token.Argument) {
 
 const Instruction = struct {
     instruction: modes.Mode,
-    arguments: []ArgumentUnion
+    arguments: std.ArrayList(ArgumentUnion),
+
+    const Self = @This();
+
+    fn init(instruction: modes.Mode, allocator: std.mem.Allocator) Self {
+        return Self{
+            .instruction = instruction,
+            .arguments = std.ArrayList(ArgumentUnion).init(allocator),
+        };
+
+    }
+    fn deinit(self: *Self) void {
+        self.arguments.deinit();
+    }
+
+    fn addArgument(self: *Self, arg: ArgumentUnion) void {
+        self.arguments.append(arg);
+    }
 };
 
 const Literal = union(enum) {
@@ -22,12 +39,15 @@ const Literal = union(enum) {
 
 const LocationItem = union(enum) {
     Instruction: Instruction,
-    Literal: Literal
+    Literal: Literal,
 };
 
 const AST = struct {
     locations: [1024]LocationItem = undefined,
     labels: std.StringHashMap(u16),
+    lc: usize = 0,
+    tokenIndex: usize = 0,
+    allocator: std.mem.Allocator,
 
     const Self = @This();
 
@@ -35,32 +55,52 @@ const AST = struct {
         return Self{
             .locations = undefined,
             .labels = std.StringHashMap(u16).init(allocator),
+            .allocator = allocator,
         };
     }
 
     fn generate(self: *Self, tokens: []const token.Token) !void {
-        var lc: u16 = 0;
-        for (tokens) |t| {
+        while (self.tokenIndex < tokens.len) {
+            const t = tokens[self.tokenIndex];
             switch (t) {
-                .INSTRUCTION => |i| {
+                .INSTRUCTION => {
                     // parse instruction
-                    self.locations[lc] = .{
-                        .Instruction = .{
-                            .instruction = i,
-                            .arguments = &.{},
-                        }
-                    };
-                    lc += 1;
+                    try self.generateInstruction(tokens);
+                    self.lc += 1;
                 },
                 .LABEL => |l| {
                     // add to symbol table
-                    try self.labels.put(l, lc);
+                    try self.labels.put(l, self.lc);
                 },
                 else => {
                     // ignore
                 }
             }
+            self.tokenIndex += 1;
         }
+    }
+
+    fn generateInstruction(self: *Self, tokens: []const token.Token) !void {
+        const t = tokens[self.tokenIndex];
+
+        const mode = t.INSTRUCTION;
+
+        const isImmediate = switch (mode) {
+            .Immediate => true,
+            else => false,
+        };
+
+        _ = isImmediate;
+            
+        var instr = Instruction.init(mode, self.allocator);
+
+        while (tokens[self.tokenIndex + 1] == .ARGUMENT) {
+            self.tokenIndex += 1;
+            const arg = tokens[self.tokenIndex].ARGUMENT;
+            instr.addArgument(.{.Argument = arg});
+        }
+
+        // if it is immediate, we need to check for literal after the instruction
     }
 
     fn deinit(self: *Self) void {
