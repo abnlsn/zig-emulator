@@ -22,7 +22,7 @@ pub fn main() !void {
     std.debug.print("done parsing: {any}", .{tokens});
 
     const outfile = try std.fs.cwd().createFile("a.rom", .{ .truncate = true, });
-    defer file.close();
+    defer outfile.close();
 
     var a = try ast.AST.init(gpa);
     try a.writeCode(tokens, outfile.writer());
