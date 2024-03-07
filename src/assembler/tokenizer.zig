@@ -94,7 +94,7 @@ pub fn Parser(comptime Reader: type) type {
             }
         }
 
-        fn parseLabel(str: []const u8) Error!?Token {
+        fn parseLabel(str: []const u8) Error!Token {
             return Token{.LABEL = str };
         }
 
@@ -143,7 +143,12 @@ pub fn Parser(comptime Reader: type) type {
             try self.tokens.append(t);
         }
 
+        pub fn deinit(self: *Self) void {
+            self.tokens.deinit();
+        }
+
     };
+
 }
 
 const tst = std.testing;

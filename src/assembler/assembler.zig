@@ -7,6 +7,13 @@ pub const ast = @import("ast.zig");
 pub fn main() !void {
     var general_purpose_allocator = std.heap.GeneralPurposeAllocator(.{}){};
     const gpa = general_purpose_allocator.allocator();
+    defer {
+        const deinit_status = general_purpose_allocator.deinit();
+        if (deinit_status != .ok) {
+            std.debug.print("{any}", .{deinit_status});
+        }
+    }
+
     const args = try std.process.argsAlloc(gpa);
     defer std.process.argsFree(gpa, args);
 
@@ -16,7 +23,7 @@ pub fn main() !void {
     defer file.close();
 
     var parser = tokenizer.Parser(@TypeOf(file.reader())).init(file.reader(), gpa);
-    // defer parser.deinit(); // TODO
+    defer parser.deinit();
 
     const tokens = try parser.parse();
 
@@ -24,9 +31,10 @@ pub fn main() !void {
     defer outfile.close();
 
     var a = try ast.AST.init(gpa);
+    defer a.deinit();
+
     try a.writeCode(tokens, outfile.writer());
 
-    defer a.deinit();
 
 }
 
