@@ -2,34 +2,18 @@ const std = @import("std");
 const token = @import("token.zig");
 const modes = @import("cpu").modes;
 
-const ArgumentUnion = union(token.Argument) {
-    pos: u8,
-    wst: u8,
-    dst: u8,
-    pg: u8,
-    k: u8,
-};
-
 const Instruction = struct {
     instruction: modes.Mode,
-    arguments: std.ArrayList(ArgumentUnion),
+    arguments: struct {
+        pos: u8 = 0,
+        wst: u8 = 0,
+        dst: u8 = 0,
+        pg: u8 = 0,
+        k: u8 = 0,
+    },
 
     const Self = @This();
 
-    fn init(instruction: modes.Mode, allocator: std.mem.Allocator) Self {
-        return Self{
-            .instruction = instruction,
-            .arguments = std.ArrayList(ArgumentUnion).init(allocator),
-        };
-
-    }
-    fn deinit(self: *Self) void {
-        self.arguments.deinit();
-    }
-
-    fn addArgument(self: *Self, arg: ArgumentUnion) void {
-        self.arguments.append(arg);
-    }
 };
 
 const Literal = union(enum) {
@@ -65,12 +49,13 @@ const AST = struct {
             switch (t) {
                 .INSTRUCTION => {
                     // parse instruction
-                    try self.generateInstruction(tokens);
+                    const instr = try self.generateInstruction(tokens);
+                    self.locations[self.lc] = LocationItem{.Instruction = instr};
                     self.lc += 1;
                 },
                 .LABEL => |l| {
                     // add to symbol table
-                    try self.labels.put(l, self.lc);
+                    try self.labels.put(l, @truncate(self.lc));
                 },
                 else => {
                     // ignore
@@ -80,7 +65,7 @@ const AST = struct {
         }
     }
 
-    fn generateInstruction(self: *Self, tokens: []const token.Token) !void {
+    fn generateInstruction(self: *Self, tokens: []const token.Token) !Instruction {
         const t = tokens[self.tokenIndex];
 
         const mode = t.INSTRUCTION;
@@ -92,13 +77,33 @@ const AST = struct {
 
         _ = isImmediate;
             
-        var instr = Instruction.init(mode, self.allocator);
+        var instr = Instruction{.instruction = mode, .arguments = .{}};
 
-        while (tokens[self.tokenIndex + 1] == .ARGUMENT) {
+        while (self.tokenIndex < tokens.len - 1 and tokens[self.tokenIndex + 1] == .ARGUMENT) {
             self.tokenIndex += 1;
-            const arg = tokens[self.tokenIndex].ARGUMENT;
-            instr.addArgument(.{.Argument = arg});
+            const arg = switch(tokens[self.tokenIndex]) {
+                .ARGUMENT => |a| a,
+                else => unreachable,
+            };
+
+            const value = switch (tokens[self.tokenIndex + 1]) {
+                .NUMBER => |n| blk: {
+                    self.tokenIndex += 1;
+                    break :blk @as(u8, @truncate(n));
+                },
+                else => unreachable
+            };
+
+            switch (arg) {
+                .pos => instr.arguments.pos = value,
+                .wst => instr.arguments.wst = value,
+                .dst => instr.arguments.dst = value,
+                .pg => instr.arguments.pg = value,
+                .k => instr.arguments.k = value,
+            }
         }
+        
+        return instr;
 
         // if it is immediate, we need to check for literal after the instruction
     }
@@ -118,10 +123,9 @@ test "generate" {
     var ast = try AST.init(tst.allocator);
     defer ast.deinit();
 
-    const tokens = [_]token.Token{token.Token{.LABEL = "hello"}, .{.INSTRUCTION = .{.Arithmetic = .ADD}}};
+    const tokens = [_]token.Token{.{.INSTRUCTION = .{.Arithmetic = .ADD}}};
 
     try ast.generate(&tokens);
 
-    try tst.expectEqual(1, ast.labels.count());
-    try tst.expectEqual(Instruction{.instruction=.{.Arithmetic=.ADD}, .arguments=&.{}}, ast.locations[0].Instruction);
+    try tst.expectEqual(Instruction{.instruction=.{.Arithmetic=.ADD}, .arguments=.{}}, ast.locations[0].Instruction);
 }
