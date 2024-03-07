@@ -1,3 +1,4 @@
 zig-cache
 *.rom
 zig-out
+*.zasm
