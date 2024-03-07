@@ -38,7 +38,7 @@ pub const AST = struct {
                 .Literal => |lit| {
                     switch (lit) {
                         .Label => |l| {
-                            const value = if (self.labels.get(l)) |v| v else unreachable;
+                            const value = self.labels.get(l) orelse unreachable;
                             const page = self.lc / 256;
                             const addr: u8 = @truncate(value - page * 256);
                             self.locations[i] = LocationItem{.Literal = .{.Value = addr}};
