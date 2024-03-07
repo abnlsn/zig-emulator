@@ -21,12 +21,19 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    const assembler = b.createModule(.{
+    // const assembler = b.createModule(.{
+    //     .root_source_file = .{ .path = "src/assembler/assembler.zig" },
+    //     .target = b.host,
+    // });
+
+    const assembler = b.addExecutable(.{
+        .name = "assembler",
         .root_source_file = .{ .path = "src/assembler/assembler.zig" },
-        .target = b.host,
+        .target = target,
+        .optimize = optimize,
     });
 
-    assembler.addImport("cpu", cpu);
+    assembler.root_module.addImport("cpu", cpu);
 
     const exe = b.addExecutable(.{
         .name = "zig-emulator",
@@ -43,22 +50,26 @@ pub fn build(b: *std.Build) void {
     // standard location when the user invokes the "install" step (the default
     // step when running `zig build`).
     b.installArtifact(exe);
+    b.installArtifact(assembler);
 
     // This *creates* a Run step in the build graph, to be executed when another
     // step is evaluated that depends on it. The next line below will establish
     // such a dependency.
     const run_cmd = b.addRunArtifact(exe);
+    const assemble_command = b.addRunArtifact(assembler);
 
     // By making the run step depend on the install step, it will be run from the
     // installation directory rather than directly from within the cache directory.
     // This is not necessary, however, if the application depends on other installed
     // files, this ensures they will be present and in the expected location.
     run_cmd.step.dependOn(b.getInstallStep());
+    assemble_command.step.dependOn(b.getInstallStep());
 
     // This allows the user to pass arguments to the application in the build
     // command itself, like this: `zig build run -- arg1 arg2 etc`
     if (b.args) |args| {
         run_cmd.addArgs(args);
+        assemble_command.addArgs(args);
     }
 
     // This creates a build step. It will be visible in the `zig build --help` menu,
@@ -66,6 +77,9 @@ pub fn build(b: *std.Build) void {
     // This will evaluate the `run` step rather than the default, which is "install".
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
+
+    const assemble_step = b.step("assemble", "Run the assembler");
+    assemble_step.dependOn(&assemble_command.step);
 
     // Creates a step for unit testing. This only builds the test executable
     // but does not run it.
@@ -76,7 +90,6 @@ pub fn build(b: *std.Build) void {
     });
 
     unit_tests.root_module.addImport("cpu", cpu);
-    unit_tests.root_module.addImport("assembler", assembler);
 
     const run_unit_tests = b.addRunArtifact(unit_tests);
 
