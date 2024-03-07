@@ -31,6 +31,20 @@ break :blk mappings;
 
 pub const instructionMap = std.ComptimeStringMapWithEql(modes.Mode, instructionMappings, std.comptime_string_map.eqlAsciiIgnoreCase);
 
+pub const Instruction = struct {
+    instruction: modes.Mode,
+    arguments: struct {
+        pos: u8 = 0,
+        wst: u8 = 0,
+        dst: u8 = 0,
+        pg: u8 = 0,
+        k: u8 = 0,
+    },
+
+    const Self = @This();
+
+};
+
 test "instruction map ADD" {
     try std.testing.expectEqual(instructionMap.get("add"), Mode{.Arithmetic = .ADD});
     try std.testing.expectEqual(instructionMap.get("ADD"), Mode{.Arithmetic = .ADD});

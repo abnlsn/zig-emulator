@@ -1,20 +1,7 @@
 const std = @import("std");
 const token = @import("token.zig");
 const modes = @import("cpu").modes;
-
-const Instruction = struct {
-    instruction: modes.Mode,
-    arguments: struct {
-        pos: u8 = 0,
-        wst: u8 = 0,
-        dst: u8 = 0,
-        pg: u8 = 0,
-        k: u8 = 0,
-    },
-
-    const Self = @This();
-
-};
+const Instruction = @import("instruction.zig").Instruction;
 
 const Literal = union(enum) {
     Value: u8,
