@@ -119,7 +119,7 @@ test "init" {
     defer ast.deinit();
 }
 
-test "generate" {
+test "generate function simple" {
     var ast = try AST.init(tst.allocator);
     defer ast.deinit();
 
@@ -128,4 +128,21 @@ test "generate" {
     try ast.generate(&tokens);
 
     try tst.expectEqual(Instruction{.instruction=.{.Arithmetic=.ADD}, .arguments=.{}}, ast.locations[0].Instruction);
+}
+
+test "generate function with arguments" {
+    var ast = try AST.init(tst.allocator);
+    defer ast.deinit();
+
+    const tokens = [_]token.Token{
+        .{.INSTRUCTION = .{.Arithmetic = .ADD}},
+        .{.ARGUMENT = .pos},
+        .{.NUMBER = 1},
+        .{.INSTRUCTION = .{.Arithmetic = .SUB}},
+    };
+
+    try ast.generate(&tokens);
+
+    try tst.expectEqual(1, ast.locations[0].Instruction.arguments.pos);
+    try tst.expectEqual(Instruction{.instruction=.{.Arithmetic=.SUB}, .arguments=.{}}, ast.locations[1].Instruction);
 }
