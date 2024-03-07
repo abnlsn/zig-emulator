@@ -26,9 +26,12 @@ pub fn Parser(comptime Reader: type) type {
         }
 
         pub fn parse(self: *Self) ![]Token {
-            while (true) {
-                const t = try self.scanToken();
-                try self.addToken(t);
+            while (self.scanToken()) |t| {
+                if (t) |some_t| {
+                    try self.addToken(some_t);
+                }
+            } else |err| {
+                if (err != Error.EndOfStream) return err;
             }
             return self.tokens.items;
         }
@@ -50,7 +53,7 @@ pub fn Parser(comptime Reader: type) type {
             }
         }
 
-        fn scanToken(self: *Self) !Token {
+        fn scanToken(self: *Self) !?Token {
             const c = try self.peek();
             switch (c) {
                 // single character
@@ -77,11 +80,12 @@ pub fn Parser(comptime Reader: type) type {
                     return label_result.?;
                 },
                 '0'...'9' => {
+                    _ = try self.read();
                     return Token{.NUMBER = 0};
                 },
                 else => {
                     _ = try self.read();
-                    return self.scanToken();
+                    return null;
                 },
             }
         }
