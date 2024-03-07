@@ -14,7 +14,7 @@ const LocationItem = union(enum) {
 };
 
 pub const AST = struct {
-    locations: [1024]LocationItem = undefined,
+    locations: [1024]?LocationItem,
     labels: std.StringHashMap(u16),
     lc: usize = 0,
     tokenIndex: usize = 0,
@@ -24,7 +24,7 @@ pub const AST = struct {
 
     pub fn init(allocator: std.mem.Allocator) !Self {
         return Self{
-            .locations = undefined,
+            .locations = [_]?LocationItem{null} ** 1024,
             .labels = std.StringHashMap(u16).init(allocator),
             .allocator = allocator,
         };
@@ -82,6 +82,7 @@ pub const AST = struct {
             }
             self.tokenIndex += 1;
         }
+        std.debug.print("locations: {any}", .{self.locations});
     }
 
     fn generateInstruction(self: *Self, tokens: []const token.Token) !Instruction {
@@ -131,8 +132,14 @@ pub const AST = struct {
 
     pub fn writeCode(self: *Self, tokens: []const token.Token, writer: anytype) !void {
         try self.generate(tokens);
-        for (self.locations) |loc| {
-            switch (loc) {
+        var i: usize = 0;
+        while (i < 1024) : (i += 1) {
+            const loc = self.locations[i];
+            if (loc == null) {
+                try writer.writeByte(0);
+                continue;
+            }
+            switch (loc.?) {
                 .Instruction => |instr| {
                     try writer.writeByte(instr.toOpcode());
                 },
