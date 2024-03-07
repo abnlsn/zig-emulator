@@ -52,6 +52,16 @@ const AST = struct {
                     const instr = try self.generateInstruction(tokens);
                     self.locations[self.lc] = LocationItem{.Instruction = instr};
                     self.lc += 1;
+
+                    const isImmediate = switch(instr.instruction) {
+                        .Immediate => true,
+                        else => false,
+                    };
+                    if (isImmediate) {
+                        const lit = try self.generateLiteral(tokens);
+                        self.locations[self.lc] = LocationItem{.Literal = lit};
+                        self.lc += 1;
+                    }
                 },
                 .LABEL => |l| {
                     // add to symbol table
@@ -70,13 +80,6 @@ const AST = struct {
 
         const mode = t.INSTRUCTION;
 
-        const isImmediate = switch (mode) {
-            .Immediate => true,
-            else => false,
-        };
-
-        _ = isImmediate;
-            
         var instr = Instruction{.instruction = mode, .arguments = .{}};
 
         while (self.tokenIndex < tokens.len - 1 and tokens[self.tokenIndex + 1] == .ARGUMENT) {
@@ -104,8 +107,17 @@ const AST = struct {
         }
         
         return instr;
+    }
 
-        // if it is immediate, we need to check for literal after the instruction
+    fn generateLiteral(self: *Self,  tokens: []const token.Token) !Literal {
+        const t = switch (tokens[self.tokenIndex + 1]) {
+            .NUMBER => |n| Literal{.Value = @truncate(n)},
+            .LABEL => |l| Literal{.Label = l},
+            else => unreachable,
+        };
+
+        self.tokenIndex += 1;
+        return t;
     }
 
     fn deinit(self: *Self) void {
@@ -145,4 +157,18 @@ test "generate function with arguments" {
 
     try tst.expectEqual(1, ast.locations[0].Instruction.arguments.pos);
     try tst.expectEqual(Instruction{.instruction=.{.Arithmetic=.SUB}, .arguments=.{}}, ast.locations[1].Instruction);
+}
+
+test "immediate instruction" {
+    var ast = try AST.init(tst.allocator);
+    defer ast.deinit();
+
+    const tokens = [_]token.Token{
+        .{.INSTRUCTION = .{.Immediate = .LIT}},
+        .{.NUMBER = 3},
+    };
+
+    try ast.generate(&tokens);
+    try tst.expectEqual(Instruction{.instruction=.{.Immediate=.LIT}, .arguments=.{}}, ast.locations[0].Instruction);
+    try tst.expectEqual(Literal{.Value = 3}, ast.locations[1].Literal);
 }
