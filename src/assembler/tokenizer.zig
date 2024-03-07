@@ -11,7 +11,7 @@ pub const Error = error {
 
 pub fn Parser(comptime Reader: type) type {
     return struct {
-        reader: Reader, // todo could benefit from std.io.peekStream
+        peekStream: std.io.PeekStream(.{.Static = 2 }, Reader ), // todo could benefit from std.io.peekStream
         allocator: std.mem.Allocator,
         tokens: std.ArrayList(Token),
 
@@ -19,7 +19,7 @@ pub fn Parser(comptime Reader: type) type {
 
         pub fn init(reader: Reader, allocator: std.mem.Allocator) Self {
             return Self {
-                .reader = reader,
+                .peekStream = std.io.peekStream(2, reader),
                 .allocator = allocator,
                 .tokens = std.ArrayList(Token).init(allocator),
             };
@@ -33,19 +33,23 @@ pub fn Parser(comptime Reader: type) type {
             return self.tokens.items;
         }
 
+        fn peek(self: *Self) !u8 {
+            const c = try self.peekStream.reader().readByte();
+            try self.peekStream.putBackByte(c);
+            return c;
+        }
+
         fn scanToken(self: *Self) !Token {
-            const c = try self.reader.reader().readByte();
+            const c = try self.peek();
             switch (c) {
                 // single character
                 ':' => return Token.COLON,
                 '@' => return Token.AT,
                 ',' => return Token.COMMA,
                 'a'...'z', 'A'...'Z' => {
-                    try self.goBack(1);
-
                     var buf: [16]u8 = undefined;
                     var fbs = std.io.fixedBufferStream(&buf);
-                    try self.reader.reader().streamUntilDelimiter(fbs.writer(), ' ', 16);
+                    try self.peekStream.reader().streamUntilDelimiter(fbs.writer(), ' ', 16);
 
                     const str = buf[0..fbs.pos];
 
@@ -105,15 +109,17 @@ const tst = std.testing;
 
 test "singleChars" {
     var data = [_]u8{':', ',', '@'};
-    const fbs = std.io.fixedBufferStream(&data);
-    var parser = Parser(@TypeOf(fbs)).init(fbs, tst.allocator);
+    var fbs = std.io.fixedBufferStream(&data);
+    const reader = fbs.reader();
+    var parser = Parser(@TypeOf(reader)).init(reader, tst.allocator);
     _ = try parser.scanToken(); // figure out how to test
 }
 
 test "instruction" {
     var data = [_]u8{'A', 'D', 'D', ' ', 'S', 'U', 'B', ' '};
-    const fbs = std.io.fixedBufferStream(&data);
-    var parser = Parser(@TypeOf(fbs)).init(fbs, tst.allocator);
+    var fbs = std.io.fixedBufferStream(&data);
+    const reader = fbs.reader();
+    var parser = Parser(@TypeOf(reader)).init(reader, tst.allocator);
 
     const res = try parser.scanToken();
     try tst.expectEqual(res, Token{.INSTRUCTION = .{.Arithmetic = .ADD}});
@@ -123,8 +129,9 @@ test "instruction" {
 
 test "argument" {
     var data = [_]u8{'p', 'o', 's', ' ', 'S', 'U', 'B', ' '};
-    const fbs = std.io.fixedBufferStream(&data);
-    var parser = Parser(@TypeOf(fbs)).init(fbs, tst.allocator);
+    var fbs = std.io.fixedBufferStream(&data);
+    const reader = fbs.reader();
+    var parser = Parser(@TypeOf(reader)).init(reader, tst.allocator);
 
     const res = try parser.scanToken();
     try tst.expectEqual(Token{.ARGUMENT = .pos}, res);
