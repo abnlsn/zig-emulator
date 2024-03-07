@@ -13,7 +13,7 @@ const LocationItem = union(enum) {
     Literal: Literal,
 };
 
-const AST = struct {
+pub const AST = struct {
     locations: [1024]LocationItem = undefined,
     labels: std.StringHashMap(u16),
     lc: usize = 0,
@@ -22,7 +22,7 @@ const AST = struct {
 
     const Self = @This();
 
-    fn init(allocator: std.mem.Allocator) !Self {
+    pub fn init(allocator: std.mem.Allocator) !Self {
         return Self{
             .locations = undefined,
             .labels = std.StringHashMap(u16).init(allocator),
@@ -129,7 +129,26 @@ const AST = struct {
         return t;
     }
 
-    fn deinit(self: *Self) void {
+    pub fn writeCode(self: *Self, tokens: []const token.Token, writer: anytype) !void {
+        try self.generate(tokens);
+        for (self.locations) |loc| {
+            switch (loc) {
+                .Instruction => |instr| {
+                    try writer.writeByte(instr.toOpcode());
+                },
+                .Literal => |lit| {
+                    switch (lit) {
+                        .Value => |v| {
+                            try writer.writeByte(v);
+                        },
+                        .Label => unreachable,
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn deinit(self: *Self) void {
         self.labels.deinit();
     }
 };

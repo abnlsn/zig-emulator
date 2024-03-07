@@ -42,7 +42,7 @@ pub const Instruction = struct {
     },
 
     const Self = @This();
-    fn toOpcode(self: *const Self) !u8 {
+    pub fn toOpcode(self: *const Self) u8 {
         var opcode: u8 = 0;
         opcode |= self.arguments.k << 7;
         opcode |= self.arguments.wst << 6;

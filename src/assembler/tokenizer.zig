@@ -9,20 +9,28 @@ pub const Error = error {
     InvalidToken,
 } || std.mem.Allocator.Error || std.io.AnyReader.Error;
 
-fn Parser(comptime Reader: type) type {
+pub fn Parser(comptime Reader: type) type {
     return struct {
-        reader: Reader,
+        reader: Reader, // todo could benefit from std.io.peekStream
         allocator: std.mem.Allocator,
         tokens: std.ArrayList(Token),
 
         const Self = @This();
 
-        fn init(reader: Reader, allocator: std.mem.Allocator) Self {
+        pub fn init(reader: Reader, allocator: std.mem.Allocator) Self {
             return Self {
                 .reader = reader,
                 .allocator = allocator,
                 .tokens = std.ArrayList(Token).init(allocator),
             };
+        }
+
+        pub fn parse(self: *Self) ![]Token {
+            while (true) {
+                const t = try self.scanToken();
+                try self.addToken(t);
+            }
+            return self.tokens.items;
         }
 
         fn scanToken(self: *Self) !Token {
@@ -55,7 +63,7 @@ fn Parser(comptime Reader: type) type {
                 '0'...'9' => {
                     return Token{.NUMBER = 0};
                 },
-                else => return error.InvalidToken,
+                else => return self.scanToken(), // scan next char
             }
         }
 
@@ -86,7 +94,7 @@ fn Parser(comptime Reader: type) type {
             try self.reader.seekableStream().seekBy(-@as(i64, @intCast(chars)));
         }
 
-        fn addToken(self: *Parser, t: Token) !void {
+        fn addToken(self: *Self, t: Token) !void {
             try self.tokens.append(t);
         }
 
