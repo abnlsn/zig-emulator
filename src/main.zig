@@ -3,7 +3,14 @@ const Cpu = @import("cpu").Cpu;
 
 pub fn main() !void {
 
-    const file = try std.fs.cwd().openFile("bytes.rom", .{});
+    var general_purpose_allocator = std.heap.GeneralPurposeAllocator(.{}){};
+    const gpa = general_purpose_allocator.allocator();
+    const args = try std.process.argsAlloc(gpa);
+    defer std.process.argsFree(gpa, args);
+
+    if (args.len != 2) unreachable;
+
+    const file = try std.fs.cwd().openFile(args[1], .{});
     defer file.close();
 
     var cpu = try Cpu.init(file.reader());
