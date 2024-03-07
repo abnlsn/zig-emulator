@@ -29,9 +29,9 @@ fn Parser(comptime Reader: type) type {
             const c = try self.reader.reader().readByte();
             switch (c) {
                 // single character
-                ':' => return Token {.COLON = .{} },
-                '@' => return Token {.AT = .{} },
-                ',' => return Token {.COMMA = .{} },
+                ':' => return Token.COLON,
+                '@' => return Token.AT,
+                ',' => return Token.COMMA,
                 'a'...'z', 'A'...'Z' => {
                     try self.goBack(1);
 
