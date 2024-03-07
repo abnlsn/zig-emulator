@@ -15,12 +15,7 @@ pub fn main() !void {
 
     var cpu = try Cpu.init(file.reader());
 
-    try cpu.print();
-
-    for (0..7) |_| {
-        try cpu.step();
-        try cpu.print();
-    }
+    try cpu.run();
 }
 
 test "simple test" {
