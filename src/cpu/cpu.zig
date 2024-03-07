@@ -40,6 +40,7 @@ pub const Cpu = struct {
     s0: stack.Stack,
     s1: stack.Stack,
     pc: u16,
+    halt: bool = false,
 
     const Self = @This();
 
@@ -95,6 +96,12 @@ pub const Cpu = struct {
         }
     }
 
+    pub fn run(self: *Self) !void {
+        while (!self.halt) {
+            try self.step();
+            try self.print();
+        }
+    }
 
     pub fn print(self: *const Self) !void {
         const stdout = std.io.getStdOut().writer();

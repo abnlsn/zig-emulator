@@ -2,7 +2,8 @@ const Cpu = @import("../cpu.zig").Cpu;
 const instruction = @import("../instruction.zig");
 
 pub const ImmediateOp = enum(u8) {
-    LIT = 0x0000,
+    BRK,
+    LIT,
 };
 
 fn get_opcode(instr: u8) ImmediateOp {
@@ -15,6 +16,9 @@ pub fn handleImmediate(cpu: *Cpu, instr: u8) !void {
     const wst = instruction.get_wst(instr);
 
     switch (opcode) {
+        .BRK => {
+            cpu.halt = true;
+        },
         .LIT => {
 
             try cpu.push_stack(wst, immediate_value);
