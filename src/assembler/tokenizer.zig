@@ -57,9 +57,18 @@ pub fn Parser(comptime Reader: type) type {
             const c = try self.peek();
             switch (c) {
                 // single character
-                ':' => return Token.COLON,
-                '@' => return Token.AT,
-                ',' => return Token.COMMA,
+                ':' => {
+                    _ = try self.read();
+                    return Token.COLON;
+                },
+                '@' => {
+                    _ = try self.read();
+                    return Token.AT;
+                },
+                ',' => {
+                    _ = try self.read();
+                    return Token.COMMA;
+                },
                 'a'...'z', 'A'...'Z' => {
                     var buf: []u8 = try self.allocator.alloc(u8, 16);
                     errdefer self.allocator.free(buf);

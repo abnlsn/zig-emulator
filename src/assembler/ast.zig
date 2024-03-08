@@ -81,6 +81,10 @@ pub const AST = struct {
                 .LABEL => |l| {
                     // add to symbol table
                     try self.labels.put(l, @truncate(self.lc));
+                    self.tokenIndex += 1;
+                    if (tokens[self.tokenIndex] != .COLON) {
+                        return error.InvalidSyntax;
+                    }
                 },
                 else => {
                     // ignore
