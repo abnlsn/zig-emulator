@@ -30,10 +30,10 @@ pub fn main() !void {
     const outfile = try std.fs.cwd().createFile("a.rom", .{ .truncate = true, });
     defer outfile.close();
 
-    var a = try ast.AST.init(gpa);
+    var a = try ast.AST.init(tokens, gpa);
     defer a.deinit();
 
-    try a.writeCode(tokens, outfile.writer());
+    try a.writeCode(outfile.writer());
 
 
 }

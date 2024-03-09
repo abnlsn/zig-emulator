@@ -49,18 +49,20 @@ pub const Instruction = struct {
     const Self = @This();
 
     pub fn fromTokens(src: *ast.TokenReader) !Self {
-        const t = src.next();
+        const t = src.next() orelse unreachable;
 
         const operation = t.INSTRUCTION;
 
         var instr = Instruction{.instruction = operation, .arguments = .{}};
 
-        while (src.peek() == .ARGUMENT) {
-            const arg = src.next().ARGUMENT;
+        while (src.peek() != null and src.peek().? == .ARGUMENT) {
+            const arg = src.next().?.ARGUMENT;
             
-            const value = switch (src.next()) {
+            const value = if (src.next()) |v| switch (v) {
                 .NUMBER => |n| @as(u8, @truncate(n)),
                 else => unreachable,
+            } else {
+                return error.InvalidArgument;
             };
 
             switch (arg) {

@@ -9,15 +9,23 @@ pub const TokenReader = struct {
 
     const Self = @This();
 
-    pub fn next(self: *Self) !token.Token {
-        const t = try self.peek();
-        self.pos += 1;
-        return t;
+    pub fn init(tokens: []const token.Token) Self {
+        return Self{
+            .tokens = tokens,
+        };
     }
 
-    pub fn peek(self: *Self) !token.Token {
+    pub fn next(self: *Self) ?token.Token {
+        if (self.peek()) |t| {
+            self.pos += 1;
+            return t;
+        }
+        return null;
+    }
+
+    pub fn peek(self: *Self) ?token.Token {
         if (self.pos >= self.tokens.len) {
-            unreachable;
+            return null;
         }
         return self.tokens[self.pos];
     }
@@ -42,17 +50,23 @@ pub const AST = struct {
     locations: [1024]?LocationItem,
     labels: std.StringHashMap(u16),
     lc: usize = 0,
-    tokenIndex: usize = 0,
+    tokens: TokenReader,
     allocator: std.mem.Allocator,
 
     const Self = @This();
 
-    pub fn init(allocator: std.mem.Allocator) !Self {
+    pub fn init(tokens: []const token.Token, allocator: std.mem.Allocator) !Self {
         return Self{
             .locations = [_]?LocationItem{null} ** 1024,
             .labels = std.StringHashMap(u16).init(allocator),
             .allocator = allocator,
+            .tokens = TokenReader.init(tokens),
         };
+    }
+
+    fn appendLocation(self: *Self, location: LocationItem) !void {
+        self.locations[self.lc] = location;
+        self.lc += 1;
     }
 
     fn putLabels(self: *Self) !void {
@@ -78,89 +92,48 @@ pub const AST = struct {
         }
     }
 
-    fn generate(self: *Self, tokens: []const token.Token) !void {
-        while (self.tokenIndex < tokens.len) {
-            const t = tokens[self.tokenIndex];
-            switch (t) {
+    fn generate(self: *Self) !void {
+        while (self.tokens.peek()) |nextToken| {
+            switch (nextToken) {
                 .INSTRUCTION => {
                     // parse instruction
-                    const instr = try self.generateInstruction(tokens);
-                    self.locations[self.lc] = LocationItem{.Instruction = instr};
-                    self.lc += 1;
+                    const instr = try Instruction.fromTokens(&self.tokens);
+                    try self.appendLocation(.{.Instruction = instr});
 
-                    const isImmediate = switch(instr.instruction) {
-                        .Immediate => true,
-                        else => false,
-                    };
+                    const isImmediate = instr.instruction == .Immediate;
                     if (isImmediate) {
-                        const lit = try self.generateLiteral(tokens);
-                        self.locations[self.lc] = LocationItem{.Literal = lit};
-                        self.lc += 1;
+                        const lit = try self.generateLiteral();
+                        try self.appendLocation(.{.Literal = lit});
                     }
                 },
                 .LABEL => |l| {
                     // add to symbol table
+                    _ = self.tokens.next();
                     try self.labels.put(l, @truncate(self.lc));
-                    self.tokenIndex += 1;
-                    if (tokens[self.tokenIndex] != .COLON) {
+
+                    if (self.tokens.next().? != .COLON) {
                         return error.InvalidSyntax;
                     }
                 },
-                else => {
+                else => |v| {
+                    std.debug.print("{any}", .{v});
                     // ignore
+                    unreachable;
                 }
             }
-            self.tokenIndex += 1;
         }
     }
 
-    fn generateInstruction(self: *Self, tokens: []const token.Token) !Instruction {
-        const t = tokens[self.tokenIndex];
-
-        const mode = t.INSTRUCTION;
-
-        var instr = Instruction{.instruction = mode, .arguments = .{}};
-
-        while (self.tokenIndex < tokens.len - 1 and tokens[self.tokenIndex + 1] == .ARGUMENT) {
-            self.tokenIndex += 1;
-            const arg = switch(tokens[self.tokenIndex]) {
-                .ARGUMENT => |a| a,
-                else => unreachable,
-            };
-
-            const value = switch (tokens[self.tokenIndex + 1]) {
-                .NUMBER => |n| blk: {
-                    self.tokenIndex += 1;
-                    break :blk @as(u8, @truncate(n));
-                },
-                else => unreachable
-            };
-
-            switch (arg) {
-                .pos => instr.arguments.pos = value,
-                .wst => instr.arguments.wst = value,
-                .dst => instr.arguments.dst = value,
-                .pg => instr.arguments.pg = value,
-                .k => instr.arguments.k = value,
-            }
-        }
-        
-        return instr;
-    }
-
-    fn generateLiteral(self: *Self,  tokens: []const token.Token) !Literal {
-        const t = switch (tokens[self.tokenIndex + 1]) {
+    fn generateLiteral(self: *Self) !Literal {
+        return switch (self.tokens.next().?) {
             .NUMBER => |n| Literal{.Value = @truncate(n)},
             .LABEL => |l| Literal{.Label = l},
             else => unreachable,
         };
-
-        self.tokenIndex += 1;
-        return t;
     }
 
-    pub fn writeCode(self: *Self, tokens: []const token.Token, writer: anytype) !void {
-        try self.generate(tokens);
+    pub fn writeCode(self: *Self, writer: anytype) !void {
+        try self.generate();
         try self.putLabels();
         var i: usize = 0;
         while (i < 1024) : (i += 1) {
@@ -196,24 +169,23 @@ pub const AST = struct {
 
 const tst = std.testing;
 test "init" {
-    var ast = try AST.init(tst.allocator);
+    var ast = try AST.init(&[_]token.Token{}, tst.allocator);
     defer ast.deinit();
 }
 
 test "generate function simple" {
-    var ast = try AST.init(tst.allocator);
-    defer ast.deinit();
 
     const tokens = [_]token.Token{.{.INSTRUCTION = .{.Arithmetic = .ADD}}};
+    
+    var ast = try AST.init(&tokens, tst.allocator);
+    defer ast.deinit();
 
-    try ast.generate(&tokens);
+    try ast.generate();
 
-    try tst.expectEqual(Instruction{.instruction=.{.Arithmetic=.ADD}, .arguments=.{}}, ast.locations[0].Instruction);
+    try tst.expectEqual(Instruction{.instruction=.{.Arithmetic=.ADD}, .arguments=.{}}, ast.locations[0].?.Instruction);
 }
 
 test "generate function with arguments" {
-    var ast = try AST.init(tst.allocator);
-    defer ast.deinit();
 
     const tokens = [_]token.Token{
         .{.INSTRUCTION = .{.Arithmetic = .ADD}},
@@ -222,29 +194,30 @@ test "generate function with arguments" {
         .{.INSTRUCTION = .{.Arithmetic = .SUB}},
     };
 
-    try ast.generate(&tokens);
+    var ast = try AST.init(&tokens, tst.allocator);
+    defer ast.deinit();
 
-    try tst.expectEqual(1, ast.locations[0].Instruction.arguments.pos);
-    try tst.expectEqual(Instruction{.instruction=.{.Arithmetic=.SUB}, .arguments=.{}}, ast.locations[1].Instruction);
+    try ast.generate();
+
+    try tst.expectEqual(1, ast.locations[0].?.Instruction.arguments.pos);
+    try tst.expectEqual(Instruction{.instruction=.{.Arithmetic=.SUB}, .arguments=.{}}, ast.locations[1].?.Instruction);
 }
 
 test "immediate instruction" {
-    var ast = try AST.init(tst.allocator);
-    defer ast.deinit();
 
     const tokens = [_]token.Token{
         .{.INSTRUCTION = .{.Immediate = .LIT}},
         .{.NUMBER = 3},
     };
+    var ast = try AST.init(&tokens, tst.allocator);
+    defer ast.deinit();
 
-    try ast.generate(&tokens);
-    try tst.expectEqual(Instruction{.instruction=.{.Immediate=.LIT}, .arguments=.{}}, ast.locations[0].Instruction);
-    try tst.expectEqual(Literal{.Value = 3}, ast.locations[1].Literal);
+    try ast.generate();
+    try tst.expectEqual(Instruction{.instruction=.{.Immediate=.LIT}, .arguments=.{}}, ast.locations[0].?.Instruction);
+    try tst.expectEqual(Literal{.Value = 3}, ast.locations[1].?.Literal);
 }
 
 test "immediate label" {
-    var ast = try AST.init(tst.allocator);
-    defer ast.deinit();
 
     const tokens = [_]token.Token{
         .{.INSTRUCTION = .{.Immediate = .LIT}},
@@ -253,11 +226,16 @@ test "immediate label" {
         .{.ARGUMENT = .k},
         .{.NUMBER = 1},
         .{.LABEL = "label"},
+        .{.COLON = {} },
+        .{.INSTRUCTION = .{.Immediate = .LIT}},
         .{.NUMBER = 17},
     };
+    
+    var ast = try AST.init(&tokens, tst.allocator);
+    defer ast.deinit();
 
-    try ast.generate(&tokens);
-    try tst.expectEqualStrings("label", ast.locations[1].Literal.Label);
+    try ast.generate();
+    try tst.expectEqualStrings("label", ast.locations[1].?.Literal.Label);
     try ast.putLabels();
-    try tst.expectEqual(3, ast.locations[1].Literal.Value);
+    try tst.expectEqual(3, ast.locations[1].?.Literal.Value);
 }
