@@ -125,6 +125,12 @@ pub const AST = struct {
     }
 
     fn generateLiteral(self: *Self) !Literal {
+        if (self.tokens.next()) |t| {
+            switch (t) {
+                .HASH => {},
+                else => return error.InvalidLiteral
+            }
+        }
         return switch (self.tokens.next().?) {
             .NUMBER => |n| Literal{.Value = @truncate(n)},
             .LABEL => |l| Literal{.Label = l},

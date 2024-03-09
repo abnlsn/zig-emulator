@@ -61,9 +61,9 @@ pub fn Parser(comptime Reader: type) type {
                     _ = try self.read();
                     return Token.COLON;
                 },
-                '@' => {
+                '#' => {
                     _ = try self.read();
-                    return Token.AT;
+                    return Token.HASH;
                 },
                 ',' => {
                     _ = try self.read();
