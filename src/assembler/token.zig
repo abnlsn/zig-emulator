@@ -12,7 +12,7 @@ pub const Argument = enum {
 
 pub const TokenType = enum {
     // single-char tokens
-    COLON, AT, COMMA,
+    COLON, AT, COMMA, EQUAL,
 
     // instructions
     INSTRUCTION, DIRECTIVE, ARGUMENT,
@@ -25,6 +25,7 @@ pub const Token = union(TokenType) {
     COLON,
     AT,
     COMMA,
+    EQUAL,
     INSTRUCTION: instruction.Mode,
     DIRECTIVE: directive.Directive,
     ARGUMENT: Argument,

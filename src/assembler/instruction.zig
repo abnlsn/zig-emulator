@@ -57,6 +57,15 @@ pub const Instruction = struct {
 
         while (src.peek() != null and src.peek().? == .ARGUMENT) {
             const arg = src.next().?.ARGUMENT;
+
+            if (src.next()) |v| {
+                switch (v) {
+                    .EQUAL => {},
+                    else => {
+                        return error.InvalidArgument;
+                    }
+                }
+            }
             
             const value = if (src.next()) |v| switch (v) {
                 .NUMBER => |n| @as(u8, @truncate(n)),

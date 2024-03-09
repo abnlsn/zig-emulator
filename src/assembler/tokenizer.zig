@@ -69,6 +69,10 @@ pub fn Parser(comptime Reader: type) type {
                     _ = try self.read();
                     return Token.COMMA;
                 },
+                '=' => {
+                    _ = try self.read();
+                    return Token.EQUAL;
+                },
                 'a'...'z', 'A'...'Z' => {
                     var buf: []u8 = try self.allocator.alloc(u8, 16);
                     errdefer self.allocator.free(buf);
