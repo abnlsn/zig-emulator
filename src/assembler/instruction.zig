@@ -2,6 +2,7 @@ const std = @import("std");
 const meta = std.meta;
 const modes = @import("cpu").modes;
 pub const Mode = modes.Mode;
+const ast = @import("./ast.zig");
 
 const Arithmetic = modes.arithmetic.ArithmeticOp;
 const Immediate = modes.immediate.ImmediateOp;
@@ -29,7 +30,11 @@ const instructionMappings = blk: {
 break :blk mappings;
 };
 
-pub const instructionMap = std.ComptimeStringMapWithEql(modes.Mode, instructionMappings, std.comptime_string_map.eqlAsciiIgnoreCase);
+pub const instructionMap = std.ComptimeStringMapWithEql(
+    modes.Mode,
+    instructionMappings,
+    std.comptime_string_map.eqlAsciiIgnoreCase
+);
 
 pub const Instruction = struct {
     instruction: modes.Mode,
@@ -40,8 +45,35 @@ pub const Instruction = struct {
         pg: u8 = 0,
         k: u8 = 0,
     },
-
+    
     const Self = @This();
+
+    pub fn fromTokens(src: *ast.TokenReader) !Self {
+        const t = src.next();
+
+        const operation = t.INSTRUCTION;
+
+        var instr = Instruction{.instruction = operation, .arguments = .{}};
+
+        while (src.peek() == .ARGUMENT) {
+            const arg = src.next().ARGUMENT;
+            
+            const value = switch (src.next()) {
+                .NUMBER => |n| @as(u8, @truncate(n)),
+                else => unreachable,
+            };
+
+            switch (arg) {
+                .pos => instr.arguments.pos = value,
+                .wst => instr.arguments.wst = value,
+                .dst => instr.arguments.dst = value,
+                .pg => instr.arguments.pg = value,
+                .k => instr.arguments.k = value,
+            }
+        }
+        return instr;
+    }
+
     pub fn toOpcode(self: *const Self) u8 {
         var opcode: u8 = 0;
         opcode |= self.arguments.k << 7;
