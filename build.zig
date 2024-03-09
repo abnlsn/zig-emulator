@@ -109,4 +109,28 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_unit_tests.step);
     test_step.dependOn(&run_assembler_tests.step);
+
+    buildWeb(b);
+}
+
+fn buildWeb(b: *std.Build) void {
+    const target = b.resolveTargetQuery(.{
+        .cpu_arch = .wasm32,
+        .os_tag = .freestanding,
+    });
+
+    const exe = b.addExecutable(.{
+        .name = "emulator",
+        .root_source_file = .{ .path = "src/web/zigdom.zig" },
+        .target = target,
+        // .optimize = .ReleaseSmall
+    });
+
+    exe.entry = .disabled;
+    exe.rdynamic = true;
+    // exe.import_memory = true;
+
+    b.installArtifact(exe);
+
+
 }
