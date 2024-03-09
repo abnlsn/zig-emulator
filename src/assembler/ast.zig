@@ -3,6 +3,26 @@ const token = @import("token.zig");
 const modes = @import("cpu").modes;
 const Instruction = @import("instruction.zig").Instruction;
 
+pub const TokenReader = struct {
+    tokens: []const token.Token,
+    pos: usize = 0,
+
+    const Self = @This();
+
+    pub fn next(self: *Self) !token.Token {
+        const t = try self.peek();
+        self.pos += 1;
+        return t;
+    }
+
+    pub fn peek(self: *Self) !token.Token {
+        if (self.pos >= self.tokens.len) {
+            unreachable;
+        }
+        return self.tokens[self.pos];
+    }
+};
+
 const Literal = union(enum) {
     Value: u8,
     Label: []const u8
