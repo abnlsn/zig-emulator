@@ -6,6 +6,7 @@ extern "element" fn set_attribute(element_id: usize, name_ptr: [*]const u8, name
 extern "element" fn get_attribute(element_id: usize, name_ptr: [*]const u8, name_len: usize, value_ptr: *[*]u8, value_len: *usize) bool;
 extern "event_target" fn add_event_listener(event_target_id: usize, event_ptr: [*]const u8, event_len: usize, event_id: usize) void;
 extern "window" fn alert(msg_ptr: [*]const u8, msg_len: usize) void;
+extern "window" fn log(msg_ptr: [*]const u8, msg_len: usize) void;
 extern "node" fn append_child(node_id: usize, child_id: usize) usize;
 extern "zig" fn release_object(object_id: usize) void;
 
@@ -20,6 +21,7 @@ const eventId = enum(usize) {
     Clear,
 };
 
+var textarea_node: usize = undefined;
 
 fn launch() !void {
     const body_selector = "body";
@@ -48,6 +50,29 @@ fn launch() !void {
     if (attached_input_node == 0) {
         return error.AppendChildError;
     }
+
+    const textarea_selector = "#code";
+    textarea_node = query_selector(textarea_selector.ptr, textarea_selector.len);
+    const textarea_value_name = "value";
+    var textarea_value: [*]u8 = undefined;
+    var textarea_len: usize = undefined;
+    const success = get_attribute(textarea_node, textarea_value_name.ptr, textarea_value_name.len, &textarea_value, &textarea_len);
+
+    if (success) {
+        const result = textarea_value[0..textarea_len];
+        defer std.heap.page_allocator.free(result);
+
+        log(result.ptr, result.len);
+    }
+
+}
+
+export fn load_code(code_ptr: [*]u8, code_len: usize) void {
+    // const result = code_ptr[0..code_len];
+    // defer std.heap.page_allocator.free(result);
+
+    // log(result.ptr, result.len);
+    log(code_ptr, code_len);
 }
 
 export fn launch_export() bool {

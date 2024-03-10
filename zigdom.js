@@ -31,6 +31,41 @@ const elementSetAttribute = function(
   node[attribute_name] = value;
 };
 
+const btn = document.getElementById("run");
+
+btn.addEventListener("click", function(event) {
+  const area = document.getElementById("code");
+  const text = area.value;
+
+  const textEncoder = new TextEncoder();
+  const resultArray = textEncoder.encode(text);
+  const len = resultArray.length;
+
+  if (len === 0) {
+    return false;
+  }
+
+  const ptr = zigdom.exports._wasm_alloc(len);
+  if (ptr === 0) {
+    throw "Cannot allocate memory";
+  }
+
+  // write the array to the memory
+  const mem_result = new DataView(zigdom.exports.memory.buffer, ptr, len);
+  for (let i = 0; i < len; ++i) {
+    mem_result.setUint8(i, resultArray[i], true);
+  }
+
+  zigdom.exports.load_code(ptr, len);
+})
+
+const loadStack = function(
+  stack_ptr,
+  stack_len,
+) {
+
+}
+
 const elementGetAttribute = function(
   node_id,
   name_ptr,
