@@ -121,16 +121,16 @@ export fn step_cpu() void {
     cpu.step() catch {
         log("failed to step CPU");
     };
-    load_stack(&cpu.s0.data, 16, 0);
-    load_stack(&cpu.s1.data, 16, 1);
+    load_stack(&cpu.s0.data, cpu.s0.ptr, 0);
+    load_stack(&cpu.s1.data, cpu.s1.ptr, 1);
 }
 
 export fn run_cpu() void {
     cpu.run() catch {
         log("failed to run CPU");
     };
-    load_stack(&cpu.s0.data, 16, 0);
-    load_stack(&cpu.s1.data, 16, 1);
+    load_stack(&cpu.s0.data, cpu.s0.ptr, 0);
+    load_stack(&cpu.s1.data, cpu.s1.ptr, 1);
 }
 
 export fn launch_export() bool {

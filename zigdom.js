@@ -105,8 +105,10 @@ const loadStack = function(
   stack_number,
 ) {
   const stack = getUint8Array(stack_ptr, stack_len);
-  for (let i = 0; i < stack_len; i++) {
-    stackElements[stack_number][i].innerText = stack[i];
+  for (let i = 0; i < 16; i++) {
+    let pos = stack[i];
+    if (i >= stack_len) pos = " ";
+    stackElements[stack_number][i].innerText = pos;
   }
 }
 
