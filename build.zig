@@ -110,10 +110,15 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_unit_tests.step);
     test_step.dependOn(&run_assembler_tests.step);
 
-    buildWeb(b);
+    buildWeb(b, cpu, b.createModule(.{
+        .root_source_file = .{.path = "src/assembler/assembler.zig"},
+        .target = target,
+        .optimize = optimize
+    }));
 }
 
-fn buildWeb(b: *std.Build) void {
+fn buildWeb(b: *std.Build, cpu: *std.Build.Module, assembler: *std.Build.Module) void {
+    assembler.addImport("cpu", cpu);
     const target = b.resolveTargetQuery(.{
         .cpu_arch = .wasm32,
         .os_tag = .freestanding,
@@ -129,6 +134,9 @@ fn buildWeb(b: *std.Build) void {
     exe.entry = .disabled;
     exe.rdynamic = true;
     // exe.import_memory = true;
+
+    exe.root_module.addImport("cpu", cpu);
+    exe.root_module.addImport("assembler", assembler);
 
     b.installArtifact(exe);
 

@@ -1,0 +1,8 @@
+.stack {
+    display: flex;
+    flex-direction: row;
+}
+.stack-element {
+    aspect-ratio: 1;
+    padding: 5px;
+}

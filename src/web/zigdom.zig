@@ -9,6 +9,12 @@ extern "window" fn alert(msg_ptr: [*]const u8, msg_len: usize) void;
 extern "window" fn log(msg_ptr: [*]const u8, msg_len: usize) void;
 extern "node" fn append_child(node_id: usize, child_id: usize) usize;
 extern "zig" fn release_object(object_id: usize) void;
+extern "code" fn load_stack(stack_ptr: [*]const u8, stack_len: usize, stack_number: usize) void;
+
+const assembler = @import("assembler");
+const Cpu = @import("cpu").Cpu;
+
+var cpu: Cpu = undefined;
 
 const std = @import("std");
 

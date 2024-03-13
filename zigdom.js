@@ -1,8 +1,26 @@
+var stackElements = [[], []];
+
+// init stacks
+const st = [document.getElementById("stack1"), document.getElementById("stack2")];
+
+for (let i = 0; i < 2; i++) {
+  for (let j = 0; j < 16; j++) {
+    const div = document.createElement("div");
+    div.classList.add("stack-element");
+    stackElements[i].push(div)
+    st[i].appendChild(div);
+  }
+}
+
 const getString = function(ptr, len) {
   const slice = zigdom.exports.memory.buffer.slice(ptr, ptr + len);
   const textDecoder = new TextDecoder();
   return textDecoder.decode(slice);
 };
+
+const getUint8Array = function(ptr, len) {
+  return new Uint8Array(zigdom.exports.memory.buffer, ptr, len);
+}
 
 const pushObject = function(object) {
   return zigdom.objects.push(object);
@@ -62,8 +80,12 @@ btn.addEventListener("click", function(event) {
 const loadStack = function(
   stack_ptr,
   stack_len,
+  stack_number,
 ) {
-
+  const stack = getUint8Array(stack_ptr, stack_len);
+  for (let i = 0; i < stack_len; i++) {
+    stackElements[stack_number][i].innerText = stack[i];
+  }
 }
 
 const elementGetAttribute = function(
@@ -198,6 +220,9 @@ var zigdom = {
     },
     zig: {
       release_object: zigReleaseObject
+    },
+    code: {
+      load_stack: loadStack
     }
   },
   launch: launch,
