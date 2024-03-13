@@ -78,10 +78,6 @@ fn launch() !void {
 }
 
 export fn load_code(code_ptr: [*]u8, code_len: usize) void {
-    // const result = code_ptr[0..code_len];
-    // defer std.heap.page_allocator.free(result);
-
-    // log(result.ptr, result.len);
     console_log(code_ptr, code_len);
 
     const buf = code_ptr[0..code_len];
@@ -119,21 +115,22 @@ export fn load_code(code_ptr: [*]u8, code_len: usize) void {
         log("failed to init CPU");
         unreachable;
     };
+}
 
+export fn step_cpu() void {
     cpu.step() catch {
-        log("failed to run CPU");
-        unreachable;
+        log("failed to step CPU");
     };
-
-    cpu.step() catch {
-        log("failed to run CPU");
-        unreachable;
-    };
-
     load_stack(&cpu.s0.data, 16, 0);
     load_stack(&cpu.s1.data, 16, 1);
-    log(&cpu.s0.data);
-    log(&cpu.s1.data);
+}
+
+export fn run_cpu() void {
+    cpu.run() catch {
+        log("failed to run CPU");
+    };
+    load_stack(&cpu.s0.data, 16, 0);
+    load_stack(&cpu.s1.data, 16, 1);
 }
 
 export fn launch_export() bool {

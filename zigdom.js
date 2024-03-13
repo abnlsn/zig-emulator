@@ -1,4 +1,5 @@
 var stackElements = [[], []];
+var currentCode = "";
 
 // init stacks
 const st = [document.getElementById("stack1"), document.getElementById("stack2")];
@@ -49,11 +50,12 @@ const elementSetAttribute = function(
   node[attribute_name] = value;
 };
 
-const btn = document.getElementById("run");
+const compileBtn = document.getElementById("compile");
 
-btn.addEventListener("click", function(event) {
+compileBtn.addEventListener("click", function(event) {
   const area = document.getElementById("code");
   const text = area.value;
+  currentCode = text;
 
   const textEncoder = new TextEncoder();
   const resultArray = textEncoder.encode(text);
@@ -77,13 +79,32 @@ btn.addEventListener("click", function(event) {
   zigdom.exports.load_code(ptr, len);
 })
 
+function hasCompiled() {
+  return currentCode === document.getElementById("code").value;
+}
+
+const stepBtn = document.getElementById("step");
+stepBtn.addEventListener("click", function(event) {
+  if (!hasCompiled()) {
+    compileBtn.click();
+  }
+  zigdom.exports.step_cpu();
+});
+
+const runBtn = document.getElementById("run");
+runBtn.addEventListener("click", function(event) {
+  if (!hasCompiled()) {
+    compileBtn.click();
+  }
+  zigdom.exports.run_cpu();
+});
+
 const loadStack = function(
   stack_ptr,
   stack_len,
   stack_number,
 ) {
   const stack = getUint8Array(stack_ptr, stack_len);
-  console.log(stack);
   for (let i = 0; i < stack_len; i++) {
     stackElements[stack_number][i].innerText = stack[i];
   }
