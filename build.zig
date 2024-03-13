@@ -28,7 +28,7 @@ pub fn build(b: *std.Build) void {
 
     const assembler = b.addExecutable(.{
         .name = "assembler",
-        .root_source_file = .{ .path = "src/assembler/assembler.zig" },
+        .root_source_file = .{ .path = "src/assembler/main.zig" },
         .target = target,
         .optimize = optimize,
     });
@@ -78,9 +78,6 @@ pub fn build(b: *std.Build) void {
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
 
-    const assemble_step = b.step("assemble", "Run the assembler");
-    assemble_step.dependOn(&assemble_command.step);
-
     // Creates a step for unit testing. This only builds the test executable
     // but does not run it.
     const unit_tests = b.addTest(.{
@@ -110,19 +107,26 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_unit_tests.step);
     test_step.dependOn(&run_assembler_tests.step);
 
-    buildWeb(b, cpu, b.createModule(.{
-        .root_source_file = .{.path = "src/assembler/assembler.zig"},
-        .target = target,
-        .optimize = optimize
-    }));
+    buildWeb(b);
 }
 
-fn buildWeb(b: *std.Build, cpu: *std.Build.Module, assembler: *std.Build.Module) void {
-    assembler.addImport("cpu", cpu);
+fn buildWeb(b: *std.Build) void {
     const target = b.resolveTargetQuery(.{
         .cpu_arch = .wasm32,
         .os_tag = .freestanding,
     });
+
+    const cpu = b.createModule(.{
+        .root_source_file = .{.path = "src/cpu/cpu.zig"},
+        .target = target
+    });
+
+    const assembler = b.createModule(.{
+        .root_source_file = .{.path = "src/assembler/assembler.zig"},
+        .target = target
+    });
+
+    assembler.addImport("cpu", cpu);
 
     const exe = b.addExecutable(.{
         .name = "emulator",

@@ -83,6 +83,7 @@ const loadStack = function(
   stack_number,
 ) {
   const stack = getUint8Array(stack_ptr, stack_len);
+  console.log(stack);
   for (let i = 0; i < stack_len; i++) {
     stackElements[stack_number][i].innerText = stack[i];
   }
@@ -191,7 +192,7 @@ const launch = function(result) {
   }
 };
 
-const log = function(msg_ptr, msg_len) {
+const console_log = function(msg_ptr, msg_len) {
   const msg = getString(msg_ptr, msg_len);
   console.log(msg);
 }
@@ -216,7 +217,7 @@ var zigdom = {
     },
     window: {
       alert: windowAlert,
-      log: log
+      console_log: console_log
     },
     zig: {
       release_object: zigReleaseObject
