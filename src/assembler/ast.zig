@@ -115,8 +115,8 @@ pub const AST = struct {
                         return error.InvalidSyntax;
                     }
                 },
-                else => |v| {
-                    std.debug.print("{any}", .{v});
+                else => |_| {
+                    // std.debug.print("{any}", .{v});
                     // ignore
                     unreachable;
                 }

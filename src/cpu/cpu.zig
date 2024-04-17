@@ -104,12 +104,13 @@ pub const Cpu = struct {
     }
 
     pub fn print(self: *const Self) !void {
-        const stdout = std.io.getStdOut().writer();
-        try stdout.print("cpu\ns0:\n", .{});
-        try self.s0.print(stdout);
-        try stdout.print("\ns1:\n", .{});
-        try self.s1.print(stdout);
-        try stdout.print("\n", .{});
+        _ = self;
+        // const stdout = std.io.getStdOut().writer();
+        // try stdout.print("cpu\ns0:\n", .{});
+        // try self.s0.print(stdout);
+        // try stdout.print("\ns1:\n", .{});
+        // try self.s1.print(stdout);
+        // try stdout.print("\n", .{});
     }
 };
 

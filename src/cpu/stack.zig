@@ -14,7 +14,7 @@ pub const Stack = struct {
 
     pub fn init() Self {
         return .{
-            .data = undefined,
+            .data = .{0} ** 16,
             .ptr = 0,
         };
     }
